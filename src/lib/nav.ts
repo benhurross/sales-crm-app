@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Settings,
   Target,
+  UserCog,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const MAIN: NavItem[] = [
 ];
 
 const ADMIN: NavItem[] = [
+  { key: "salesmen", label: "Salesmen", href: "/salesmen", icon: UserCog },
   { key: "settings", label: "Settings", href: "/settings", icon: Settings },
 ];
 

@@ -63,6 +63,7 @@ export const producer = pgTable("producer", {
   id: serial().primaryKey(),
   code: varchar({ length: 10 }).notNull().unique(),
   name: text().notNull(),
+  email: text(),
   employmentStatus: employmentStatusEnum().notNull().default("Active"),
   region: text().notNull().default("Jeddah"),
   title: text(),

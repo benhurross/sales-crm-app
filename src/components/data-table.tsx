@@ -1,0 +1,142 @@
+"use client";
+
+import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
+import {
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useLegacyTable,
+} from "@tanstack/react-table/legacy";
+import { flexRender } from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RowData requires Record<string,any>
+interface DataTableProps<TData extends Record<string, any>> {
+  columns: LegacyColumnDef<TData, unknown>[];
+  data: TData[];
+  globalFilter?: string;
+  onGlobalFilterChange?: (value: string) => void;
+  enableRowSelection?: boolean;
+  rowSelection?: Record<string, true>;
+  onRowSelectionChange?: (value: Record<string, true>) => void;
+  pageSize?: number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RowData requires Record<string,any>
+export function DataTable<TData extends Record<string, any>>({
+  columns,
+  data,
+  globalFilter,
+  onGlobalFilterChange,
+  enableRowSelection,
+  rowSelection,
+  onRowSelectionChange,
+  pageSize = 25,
+}: DataTableProps<TData>) {
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([]);
+  const [columnFilters, setColumnFilters] = useState<{ id: string; value: unknown }[]>([]);
+  const [internalSelection, setInternalSelection] = useState<Record<string, true>>({});
+
+  const table = useLegacyTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange,
+    enableRowSelection,
+    onRowSelectionChange: onRowSelectionChange
+      ? (updater: unknown) => {
+          const next = typeof updater === "function" ? updater(rowSelection ?? {}) : updater;
+          onRowSelectionChange(next);
+        }
+      : setInternalSelection,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+      rowSelection: rowSelection ?? internalSelection,
+    },
+    initialState: { pagination: { pageIndex: 0, pageSize } },
+  });
+
+  const state = table.getState();
+  const pageIndex = state.pagination.pageIndex;
+  const pageCount = table.getPageCount();
+
+  return (
+    <div className="space-y-2">
+      <div className="max-h-[calc(100dvh-280px)] overflow-auto rounded-xl border bg-card shadow-glass glass-sheen">
+        <Table>
+          <TableHeader className="sticky top-0 z-10 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+            {table.getHeaderGroups().map((hg) => (
+              <TableRow key={hg.id}>
+                {hg.headers.map((header) => (
+                  <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}>
+                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 hover:text-foreground"
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getIsSorted() === "asc" ? (
+                          <ArrowUp className="size-3.5" />
+                        ) : header.column.getIsSorted() === "desc" ? (
+                          <ArrowDown className="size-3.5" />
+                        ) : (
+                          <ArrowUpDown className="size-3.5 text-muted-foreground/50" />
+                        )}
+                      </button>
+                    ) : (
+                      flexRender(header.column.columnDef.header, header.getContext())
+                    )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} data-state={row.getIsSelected() ? "selected" : undefined}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between px-1 text-sm text-muted-foreground">
+          <span>
+            Page {pageIndex + 1} of {pageCount} ({table.getFilteredRowModel().rows.length} rows)
+          </span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="size-8" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="size-8" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

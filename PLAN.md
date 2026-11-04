@@ -146,15 +146,16 @@ Client pipeline tracking:
 **Success criteria:** Navigation works; theme toggle works; layout is responsive; glass/mesh theme matches IT System App.
 
 ### Phase 3 -- Leads module (core CRUD)
-- [ ] API routes: `GET /api/leads` (list with filters, pagination, sorting), `POST /api/leads`, `GET /api/leads/[id]`, `PUT /api/leads/[id]`, `DELETE /api/leads/[id]`
-- [ ] Data-level access control on all lead endpoints
-- [ ] Leads list page with TanStack Table: fixed headers, column sorting, filtering, pagination
-- [ ] Inline status badges (Secured=green, Pending=amber, Lost=red)
-- [ ] Lead detail/edit form with validation (react-hook-form + Zod)
-- [ ] Create new lead form
+- [x] API routes: `GET /api/leads` (list with filters, pagination, sorting), `POST /api/leads`, `GET /api/leads/[id]`, `PUT /api/leads/[id]`, `DELETE /api/leads/[id]`
+- [x] Data-level access control on all lead endpoints
+- [x] Leads list page with TanStack Table: fixed headers, column sorting, filtering, pagination
+- [x] Inline status badges (Secured=green, Pending=amber, Lost=red)
+- [x] Lead detail/edit form with validation (react-hook-form + Zod)
+- [x] Create new lead form
 - [ ] Bulk status update
-- [ ] Search and multi-column filters (producer, status, COB, RFQ type, city, date range)
-- [ ] Unit tests for lead CRUD API logic
+- [x] Search and multi-column filters (producer, status, COB, RFQ type, city, date range)
+- [x] Salesmen management page (producers list with CRUD)
+- [x] Unit tests for lead CRUD API logic
 
 **Success criteria:** Full CRUD on leads works with role-based data filtering; table has fixed headers and matches styling spec; all form validations pass; unit tests pass.
 

@@ -15,6 +15,13 @@
       "when": 1793776103519,
       "tag": "0001_previous_joshua_kane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793781676828,
+      "tag": "0002_add_producer_email",
+      "breakpoints": true
     }
   ]
 }

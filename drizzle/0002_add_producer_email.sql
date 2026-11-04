@@ -1,0 +1,1 @@
+ALTER TABLE "producer" ADD COLUMN "email" text;
