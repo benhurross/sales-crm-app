@@ -188,10 +188,10 @@ Client pipeline tracking:
 **Success criteria:** Dashboard loads with correct aggregations; all charts render; filters work; data matches mastersheet totals for test data.
 
 ### Phase 6 -- Prospect clients module
-- [ ] API routes for prospect clients CRUD
-- [ ] Prospect clients list page with table
-- [ ] Link prospects to leads
-- [ ] Unit tests
+- [x] API routes for prospect clients CRUD
+- [x] Prospect clients list page with table
+- [x] Link prospects to leads (via producerId + currentInsurerId foreign keys)
+- [x] Unit tests
 
 **Success criteria:** Prospect clients can be managed; data links correctly to leads.
 
