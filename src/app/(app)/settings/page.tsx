@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, KeyRound, Users } from "lucide-react";
+import { Building2, Users } from "lucide-react";
 import Link from "next/link";
 import { useCurrentUser } from "@/components/app-shell/current-user";
 import { PageHeader } from "@/components/page-header";
@@ -20,13 +20,6 @@ const cards = [
     icon: Building2,
     href: "/settings/insurers",
     adminOnly: true,
-  },
-  {
-    title: "Change Password",
-    description: "Update your account password",
-    icon: KeyRound,
-    href: "/settings/password",
-    adminOnly: false,
   },
 ];
 

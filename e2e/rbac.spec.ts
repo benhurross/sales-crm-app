@@ -34,7 +34,7 @@ test.describe("RBAC data isolation", () => {
 
   test("salesman cannot see admin settings links", async ({ salesmanPage: page }) => {
     await page.goto("/settings");
-    await expect(page.getByText("Change Password")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("User Management")).not.toBeVisible();
     await expect(page.getByText("Insurance Companies")).not.toBeVisible();
   });
