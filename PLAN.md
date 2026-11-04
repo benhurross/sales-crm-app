@@ -160,13 +160,13 @@ Client pipeline tracking:
 **Success criteria:** Full CRUD on leads works with role-based data filtering; table has fixed headers and matches styling spec; all form validations pass; unit tests pass.
 
 ### Phase 4 -- Targets module
-- [ ] API routes: `GET /api/targets`, `POST /api/targets`, `PUT /api/targets/[id]`
-- [ ] Targets management page (admin/manager only)
-- [ ] Set annual and monthly targets per producer
-- [ ] Target vs. actual achievement calculation
-- [ ] Achievement percentage display with progress bars
-- [ ] Producer leaderboard table (ranked by secured premium)
-- [ ] Unit tests for target calculations
+- [x] API routes: `GET /api/targets` (with secured premium aggregation), `PUT /api/targets/[id]`
+- [x] Targets management page (admin/manager only)
+- [x] Set annual and monthly targets per producer (inline edit)
+- [x] Target vs. actual achievement calculation
+- [x] Achievement percentage display with color-coded progress bars
+- [x] Producer leaderboard table (ranked by secured premium, top 10 with medals)
+- [x] Unit tests for target calculations (`achievementPct`, `achievementColor`, `progressColor`, `rankBySecured`)
 
 **Success criteria:** Targets can be set and edited; achievement calculations are correct; leaderboard sorts properly.
 
