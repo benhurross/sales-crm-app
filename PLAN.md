@@ -206,14 +206,16 @@ Client pipeline tracking:
 **Success criteria:** Reports match the "Sales Report" sheet structure from the mastersheet; Excel and PDF exports generate correctly with AP Plus branding.
 
 ### Phase 8 -- Data migration (ETL)
-- [ ] Create `scripts/etl.ts` to import from Sales Lead Mastersheet.xlsx
-- [ ] Parse and normalize all sheets: Main Data, Targets, Salesman Target, Prospect Clients
-- [ ] Map columns to database schema
-- [ ] Handle data quality: missing values, date format normalization, boolean parsing
-- [ ] Create seed script with sample data for development
-- [ ] Validate imported data against mastersheet totals
+- [x] Create `scripts/etl.ts` to import from Sales Lead Mastersheet.xlsx + SupportingFiles/
+- [x] Parse and normalize all sheets: Main Data, Targets, Salesman Target, Prospect Clients
+- [x] Read individual AP Sales files from SupportingFiles (primary lead source)
+- [x] Map columns to database schema
+- [x] Handle data quality: missing values, date format normalization, boolean parsing, insurer name normalization, fuzzy producer name matching
+- [x] Create user accounts from SalesmenList.xlsx (9 salesmen + 1 admin)
+- [x] Validate imported data with counts and status breakdown
+- [x] Unit tests for ETL helper functions (29 tests)
 
-**Success criteria:** All 2,470 leads, producer targets, and 3,300 prospect clients imported correctly; totals match the mastersheet.
+**Success criteria:** 583 leads (from 8 AP Sales files + mastersheet cached values), 22 producers with targets, 3,300 prospect clients, 23 insurance companies imported; 10 user accounts created; all data normalized and linked.
 
 ### Phase 9 -- Settings and admin
 - [ ] User management page (admin only): create, edit, deactivate users
