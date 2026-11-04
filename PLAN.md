@@ -171,9 +171,9 @@ Client pipeline tracking:
 **Success criteria:** Targets can be set and edited; achievement calculations are correct; leaderboard sorts properly.
 
 ### Phase 5 -- Dashboard
-- [ ] Summary KPI stat cards: total leads, secured count, pending count, lost count, total premium, success rate
-- [ ] Premium breakdown by status (secured / pending / lost totals)
-- [ ] Charts (Recharts):
+- [x] Summary KPI stat cards: total leads, secured count, pending count, lost count, total premium, success rate
+- [x] Premium breakdown by status (secured / pending / lost totals)
+- [x] Charts (Recharts):
   - Leads by RFQ type (New vs Renewal) -- pie/donut
   - Leads by COB (General / Medical / Motor) -- pie/donut
   - Leads by city -- bar chart
@@ -181,9 +181,9 @@ Client pipeline tracking:
   - Quarterly performance -- grouped bar chart
   - Target vs. secured per producer -- horizontal bar chart
   - Producer leaderboard -- ranked table
-- [ ] Date range and producer filters on dashboard
-- [ ] Dashboard respects RBAC (salesman sees own data only)
-- [ ] Unit tests for dashboard aggregation logic
+- [x] Date range and producer filters on dashboard
+- [x] Dashboard respects RBAC (salesman sees own data only)
+- [x] Unit tests for dashboard aggregation logic
 
 **Success criteria:** Dashboard loads with correct aggregations; all charts render; filters work; data matches mastersheet totals for test data.
 
