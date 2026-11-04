@@ -12,7 +12,7 @@
 | Framework | Next.js 16, client-side rendering, App Router | Matches AP IT System App; CSR per AGENTS.md |
 | Styling | Tailwind CSS 4, shadcn/ui, Radix UI | Same as AP IT System App; glass/mesh brand theme |
 | Fonts | IBM Plex Sans + IBM Plex Sans Arabic | AP Plus brand; same `--font-plex` / `--font-plex-arabic` variables |
-| Database | PostgreSQL 18 via Docker on port 5434 | Per AGENTS.md; isolated container |
+| Database | PostgreSQL 18 via Docker on port 5435 | Per AGENTS.md; isolated container |
 | ORM | Drizzle ORM | Matches AP IT System App; migrations in `drizzle/` |
 | Auth | better-auth with credential provider | Simple username/password; same lib as IT System App |
 | State | TanStack Query + TanStack Table | Server-state caching, advanced table features |
@@ -111,17 +111,17 @@ Client pipeline tracking:
 ## Phases
 
 ### Phase 0 -- Project scaffolding
-- [ ] Initialize Next.js 16 project with TypeScript
-- [ ] Configure Tailwind CSS 4 with AP Plus brand theme (copy `globals.css` from IT System App)
-- [ ] Copy brand assets (logos, fonts) from IT System App
-- [ ] Set up shadcn/ui components
-- [ ] Configure ESLint, Prettier
-- [ ] Create `.gitignore`, `.env.example`, `docker-compose.yml`
-- [ ] Set up Drizzle ORM with PostgreSQL
-- [ ] Create `npm run` scripts matching AGENTS.md spec
-- [ ] Initialize git repository
+- [x] Initialize Next.js 16 project with TypeScript
+- [x] Configure Tailwind CSS 4 with AP Plus brand theme (copy `globals.css` from IT System App)
+- [x] Copy brand assets (logos, fonts) from IT System App
+- [x] Set up shadcn/ui components
+- [x] Configure ESLint, Prettier
+- [x] Create `.gitignore`, `.env.example`, `docker-compose.yml`
+- [x] Set up Drizzle ORM with PostgreSQL
+- [x] Create `npm run` scripts matching AGENTS.md spec
+- [x] Initialize git repository
 
-**Success criteria:** `npm run dev` starts on port 3400; `npm run db:up` starts Postgres on 5434; `npm run lint` and `npm run typecheck` pass.
+**Success criteria:** `npm run dev` starts on port 3400; `npm run db:up` starts Postgres on 5435; `npm run lint` and `npm run typecheck` pass.
 
 ### Phase 1 -- Database schema and auth
 - [x] Design and create Drizzle schema: `users`, `producers`, `leads`, `insurance_companies`, `prospect_clients`, `targets`, `audit_log`
@@ -135,13 +135,13 @@ Client pipeline tracking:
 **Success criteria:** Users can sign in; role-based route protection works; `npm run test` passes for auth tests.
 
 ### Phase 2 -- App layout and navigation
-- [ ] Build app shell: collapsible sidebar + topbar (maximize working area)
-- [ ] Copy and adapt mesh background, glass card styling from IT System App
-- [ ] Implement dark/light theme toggle
-- [ ] Build navigation: Dashboard, Leads, Targets, Reports, Prospects, Settings
-- [ ] Create `PageHeader` component
-- [ ] Create responsive layout (mobile sidebar as sheet)
-- [ ] Create `format.ts` with Saudi Riyal sign (U+20C1), number/date formatters
+- [x] Build app shell: collapsible sidebar + topbar (maximize working area)
+- [x] Copy and adapt mesh background, glass card styling from IT System App
+- [x] Implement dark/light theme toggle
+- [x] Build navigation: Dashboard, Leads, Targets, Reports, Prospects, Settings
+- [x] Create `PageHeader` component
+- [x] Create responsive layout (mobile sidebar as sheet)
+- [x] Create `format.ts` with Saudi Riyal sign (U+20C1), number/date formatters
 
 **Success criteria:** Navigation works; theme toggle works; layout is responsive; glass/mesh theme matches IT System App.
 
