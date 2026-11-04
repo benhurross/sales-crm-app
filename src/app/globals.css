@@ -1,0 +1,306 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * AP Plus brand, taken from the company theme: primary #0047BA, navy #21325B,
+ * accent #00C9A7, info #09A5BE, warn #F5CA99, danger #ED4C78, surface #F7FAFF.
+ * Every text pairing below was measured at WCAG AA (4.5:1) or better in both themes.
+ * Chart slots were checked with the dataviz palette validator (CVD, band, 3:1 contrast).
+ */
+:root {
+  --app-font: var(--font-plex), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
+
+  --background: #f7faff;
+  --foreground: #1e2022;
+  --card: var(--glass);
+  --card-foreground: #1e2022;
+  --popover: #ffffff;
+  --popover-foreground: #1e2022;
+  --primary: #0047ba;
+  --primary-foreground: #ffffff;
+  --secondary: #eef3fb;
+  --secondary-foreground: #21325b;
+  --muted: #f1f4f9;
+  --muted-foreground: #475467;
+  --accent: #e6efff;
+  --accent-foreground: #08305a;
+  --destructive: #b3244b;
+  --border: #e3e8f1;
+  --input: #c9d1de;
+  --ring: #0047ba;
+
+  --brand: #0047ba;
+  --brand-soft: #e6efff;
+  --success: #046b5a;
+  --success-soft: #dff4ee;
+  --warning: #8a4b00;
+  --warning-soft: #fff0d9;
+  --danger: #b3244b;
+  --danger-soft: #fde7ed;
+  --info: #05677a;
+  --info-soft: #ddf3f7;
+  --neutral: #475467;
+  --neutral-soft: #edf1f6;
+
+  --chart-1: #0047ba;
+  --chart-2: #0f9d84;
+  --chart-3: #eb6834;
+  --chart-4: #8e4ec6;
+  --chart-5: #8a94a6;
+
+  --radius: 0.625rem;
+
+  --theme-light: #febf00;
+  --theme-dark: #00ffff;
+  --theme-system: #00ff00;
+  --warning-icon: #febf00;
+
+  --mesh-1: rgb(96 165 250 / 0.34);
+  --mesh-2: rgb(45 212 191 / 0.3);
+  --mesh-3: rgb(167 139 250 / 0.26);
+  --mesh-4: rgb(244 114 182 / 0.2);
+  --glass: rgb(255 255 255 / 0.36);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.55) 0%, rgb(255 255 255 / 0.12) 50%, rgb(255 255 255 / 0.02) 100%);
+  --glass-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 0 0 1px rgb(255 255 255 / 0.5), 0 1px 2px rgb(16 24 40 / 0.04),
+    0 14px 34px -18px rgb(37 99 235 / 0.28);
+
+  --sidebar: #21325b;
+  --sidebar-foreground: #dfe6f3;
+  --sidebar-primary: #0047ba;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2c4170;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2e4272;
+  --sidebar-ring: #70aff2;
+  --sidebar-muted: #a9b7d0;
+}
+
+.dark {
+  --background: #0d1526;
+  --foreground: #e6ebf4;
+  --card: var(--glass);
+  --card-foreground: #e6ebf4;
+  --popover: #16213a;
+  --popover-foreground: #e6ebf4;
+  --primary: #6aa5ff;
+  --primary-foreground: #0b1220;
+  --secondary: #1c2740;
+  --secondary-foreground: #e6ebf4;
+  --muted: #1a2438;
+  --muted-foreground: #9aa8bf;
+  --accent: #1f2c47;
+  --accent-foreground: #e6ebf4;
+  --destructive: #ff7a9a;
+  --border: #26324a;
+  --input: #3a4866;
+  --ring: #6aa5ff;
+
+  --brand: #8fbcff;
+  --brand-soft: rgb(63 134 242 / 0.18);
+  --success: #4fd6b5;
+  --success-soft: rgb(15 157 132 / 0.18);
+  --warning: #f5ca99;
+  --warning-soft: rgb(245 165 36 / 0.16);
+  --danger: #ff8fab;
+  --danger-soft: rgb(237 76 120 / 0.18);
+  --info: #6fd3e3;
+  --info-soft: rgb(9 165 190 / 0.18);
+  --neutral: #b4bfd0;
+  --neutral-soft: rgb(148 163 184 / 0.14);
+
+  --mesh-1: rgb(59 130 246 / 0.28);
+  --mesh-2: rgb(20 184 166 / 0.18);
+  --mesh-3: rgb(139 92 246 / 0.22);
+  --mesh-4: rgb(236 72 153 / 0.1);
+  --glass: rgb(19 28 48 / 0.58);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.05) 0%, transparent 55%);
+  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 10px 30px -14px rgb(0 0 0 / 0.55);
+
+  --chart-1: #3f86f2;
+  --chart-2: #14a88c;
+  --chart-3: #e0703f;
+  --chart-4: #8b74e0;
+  --chart-5: #7d89a0;
+
+  --sidebar: #0a1122;
+  --sidebar-foreground: #d5deee;
+  --sidebar-primary: #1e56c4;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #16223d;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1b2742;
+  --sidebar-ring: #6aa5ff;
+  --sidebar-muted: #9aa8bf;
+}
+
+@theme inline {
+  --font-sans: var(--app-font);
+  --font-heading: var(--app-font);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --shadow-glass: var(--glass-shadow);
+  --color-theme-light: var(--theme-light);
+  --color-theme-dark: var(--theme-dark);
+  --color-theme-system: var(--theme-system);
+  --color-warning-icon: var(--warning-icon);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-neutral: var(--neutral);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  .lucide-triangle-alert {
+    color: var(--warning-icon);
+  }
+  .recharts-text {
+    font-size: 0.75rem;
+  }
+}
+
+@layer components {
+  .mesh {
+    background-color: var(--background);
+  }
+  .mesh::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .mesh-glow {
+    position: absolute;
+    border-radius: 9999px;
+    will-change: transform;
+  }
+  .mesh-glow-1 {
+    width: 70vmax;
+    height: 70vmax;
+    top: -30vmax;
+    left: 5vw;
+    background: radial-gradient(closest-side, var(--mesh-1), transparent);
+    animation: mesh-drift-1 40s ease-in-out infinite alternate;
+  }
+  .mesh-glow-2 {
+    width: 62vmax;
+    height: 62vmax;
+    bottom: -30vmax;
+    right: -18vmax;
+    background: radial-gradient(closest-side, var(--mesh-2), transparent);
+    animation: mesh-drift-2 48s ease-in-out infinite alternate;
+  }
+  .mesh-glow-3 {
+    width: 48vmax;
+    height: 48vmax;
+    top: 28%;
+    left: 30%;
+    background: radial-gradient(closest-side, var(--mesh-3), transparent);
+    animation: mesh-drift-3 56s ease-in-out infinite alternate;
+  }
+  .mesh-glow-4 {
+    width: 40vmax;
+    height: 40vmax;
+    top: -12vmax;
+    right: 8vw;
+    background: radial-gradient(closest-side, var(--mesh-4), transparent);
+    animation: mesh-drift-4 64s ease-in-out infinite alternate;
+  }
+}
+
+@utility glass-sheen {
+  background-image: var(--glass-sheen);
+}
+
+@keyframes mesh-drift-1 {
+  to {
+    transform: translate3d(14vw, 10vh, 0) scale(1.12);
+  }
+}
+@keyframes mesh-drift-2 {
+  to {
+    transform: translate3d(-16vw, -12vh, 0) scale(0.9);
+  }
+}
+@keyframes mesh-drift-3 {
+  to {
+    transform: translate3d(-18vw, 14vh, 0) scale(1.18);
+  }
+}
+@keyframes mesh-drift-4 {
+  to {
+    transform: translate3d(-10vw, 22vh, 0) scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-glow {
+    animation: none;
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.7s;
+  animation-timing-function: ease-in-out;
+}

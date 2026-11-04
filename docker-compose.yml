@@ -1,0 +1,23 @@
+# Postgres for this project only. Port 5434 keeps it clear of other local databases.
+# The password protects nothing but a container bound to this machine.
+name: sales-crm
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sales
+      POSTGRES_PASSWORD: sales
+      POSTGRES_DB: sales_crm
+    ports:
+      - '127.0.0.1:5435:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sales -d sales_crm']
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:
