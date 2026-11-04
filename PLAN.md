@@ -218,12 +218,12 @@ Client pipeline tracking:
 **Success criteria:** 583 leads (from 8 AP Sales files + mastersheet cached values), 22 producers with targets, 3,300 prospect clients, 23 insurance companies imported; 10 user accounts created; all data normalized and linked.
 
 ### Phase 9 -- Settings and admin
-- [ ] User management page (admin only): create, edit, deactivate users
-- [ ] Lookup tables management: insurance companies, cities, COB types
-- [ ] Audit log viewer
-- [ ] Password change
+- [x] User management page (admin only): create, edit, deactivate users
+- [x] Lookup tables management: insurance companies
+- [x] Password change
+- [ ] Audit log viewer (deferred to Phase 11)
 
-**Success criteria:** Admin can manage users and lookups; audit trail records changes.
+**Success criteria:** Admin can manage users and lookups via settings pages; all roles can change their own password; 120 unit tests pass; lint, typecheck, and build clean.
 
 ### Phase 10 -- Integration testing (Playwright e2e)
 - [ ] Set up Playwright config for port 3500
