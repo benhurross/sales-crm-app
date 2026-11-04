@@ -196,12 +196,12 @@ Client pipeline tracking:
 **Success criteria:** Prospect clients can be managed; data links correctly to leads.
 
 ### Phase 7 -- Reports and exports
-- [ ] Sales report page: monthly producer activity, BOR, premium, secured, target, result, achievement %
-- [ ] Filterable by date range, producer, status
-- [ ] Excel export with ExcelJS (AP Plus letterhead template)
-- [ ] PDF export via playwright-core / Chromium
-- [ ] Create export templates in `src/server/exports/`
-- [ ] Unit tests for report calculations
+- [x] Sales report page: monthly producer activity, BOR, premium, secured, target, result, achievement %
+- [x] Filterable by date range, producer, status
+- [x] Excel export with ExcelJS (AP Plus letterhead template)
+- [x] PDF export via playwright-core / Chromium
+- [x] Create export templates in `src/server/exports/`
+- [x] Unit tests for report calculations
 
 **Success criteria:** Reports match the "Sales Report" sheet structure from the mastersheet; Excel and PDF exports generate correctly with AP Plus branding.
 
