@@ -602,6 +602,7 @@ prospectSheet.eachRow((row, idx) => {
     month: str(cv(row, 4)) || null,
     currentInsurerId,
     lob,
+    status: "prospect",
   });
   prospectCount++;
 });

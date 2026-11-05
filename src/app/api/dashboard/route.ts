@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, count, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
@@ -49,5 +49,23 @@ export async function GET(request: Request) {
     .from(schema.producer)
     .orderBy(schema.producer.name);
 
-  return Response.json({ leads, producers });
+  const prospectStatsQuery = db
+    .select({
+      total: count(),
+      converted: count(sql`CASE WHEN ${schema.prospectClient.status} = 'converted' THEN 1 END`),
+    })
+    .from(schema.prospectClient);
+
+  const [prospectStats] = producerFilter
+    ? await prospectStatsQuery.where(eq(schema.prospectClient.producerId, producerFilter))
+    : await prospectStatsQuery;
+
+  return Response.json({
+    leads,
+    producers,
+    prospects: {
+      total: prospectStats?.total ?? 0,
+      converted: prospectStats?.converted ?? 0,
+    },
+  });
 }

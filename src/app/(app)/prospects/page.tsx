@@ -2,12 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
 import { DataTable } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatAmount } from "@/lib/format";
@@ -22,6 +24,7 @@ interface Prospect {
   month: string | null;
   currentInsurerId: number | null;
   lob: "General" | "Medical" | "Motor" | null;
+  status: "prospect" | "converted" | "inactive";
   producerName: string | null;
   producerCode: string | null;
   insurerName: string | null;
@@ -31,9 +34,11 @@ export default function ProspectsPage() {
   const user = useCurrentUser();
   const canManage = hasRole(user.role, "manager");
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [search, setSearch] = useState("");
   const [lobFilter, setLobFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
 
@@ -45,6 +50,7 @@ export default function ProspectsPage() {
   const filtered = useMemo(() => {
     let result = prospects;
     if (lobFilter) result = result.filter((p) => p.lob === lobFilter);
+    if (statusFilter) result = result.filter((p) => p.status === statusFilter);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -56,7 +62,7 @@ export default function ProspectsPage() {
       );
     }
     return result;
-  }, [prospects, lobFilter, search]);
+  }, [prospects, lobFilter, statusFilter, search]);
 
   const saveMutation = useMutation({
     mutationFn: async (values: ProspectFormValues & { id?: number }) => {
@@ -137,12 +143,29 @@ export default function ProspectsPage() {
         cell: ({ getValue }) => getValue() || "--",
       },
       {
+        accessorKey: "status",
+        header: "Status",
+        size: 110,
+        cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
+      },
+      {
         id: "actions",
         header: "",
-        size: 80,
+        size: 120,
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex gap-1">
+            {row.original.status === "prospect" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-primary hover:text-primary"
+                title="Convert to Lead"
+                onClick={() => router.push(`/leads?convertProspect=${row.original.id}`)}
+              >
+                <ArrowRightLeft className="size-3.5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(row.original)}>
               <Pencil className="size-3.5" />
             </Button>
@@ -160,7 +183,7 @@ export default function ProspectsPage() {
         ),
       },
     ],
-    [canManage, deleteMutation],
+    [canManage, deleteMutation, router],
   );
 
   const editDefaults: Partial<ProspectFormValues> | undefined = editingProspect
@@ -194,8 +217,14 @@ export default function ProspectsPage() {
           <option value="Medical">Medical</option>
           <option value="Motor">Motor</option>
         </select>
-        {(lobFilter || search) && (
-          <Button variant="ghost" size="sm" onClick={() => { setLobFilter(""); setSearch(""); }}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All Status</option>
+          <option value="prospect">Prospect</option>
+          <option value="converted">Converted</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        {(lobFilter || statusFilter || search) && (
+          <Button variant="ghost" size="sm" onClick={() => { setLobFilter(""); setStatusFilter(""); setSearch(""); }}>
             Clear filters
           </Button>
         )}

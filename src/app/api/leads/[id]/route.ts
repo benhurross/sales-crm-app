@@ -47,7 +47,12 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/leads/[i
   if (!(await canAccessLead(session.user.id, session.user.role, numId)))
     return Response.json({ error: "Forbidden" }, { status: 403 });
 
-  const { commission, currentInsurerId, borTimestamp, quoteTimestamp, comments, ...rest } = await request.json();
+  const { commission, currentInsurerId, borTimestamp, quoteTimestamp, comments, prospectClientId, ...rest } = await request.json();
+
+  const [existing] = await db.select({ prospectClientId: schema.lead.prospectClientId }).from(schema.lead).where(eq(schema.lead.id, numId)).limit(1);
+  const oldProspectId = existing?.prospectClientId;
+  const newProspectId = prospectClientId !== undefined ? (prospectClientId ? Number(prospectClientId) : null) : oldProspectId;
+
   const [row] = await db
     .update(schema.lead)
     .set({
@@ -57,12 +62,21 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/leads/[i
       borTimestamp: borTimestamp || null,
       quoteTimestamp: quoteTimestamp || null,
       comments: comments || null,
+      prospectClientId: newProspectId,
       updatedAt: new Date(),
     })
     .where(eq(schema.lead.id, numId))
     .returning();
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+
+  if (oldProspectId && oldProspectId !== newProspectId) {
+    await db.update(schema.prospectClient).set({ status: "prospect", updatedAt: new Date() }).where(eq(schema.prospectClient.id, oldProspectId));
+  }
+  if (newProspectId && newProspectId !== oldProspectId) {
+    await db.update(schema.prospectClient).set({ status: "converted", updatedAt: new Date() }).where(eq(schema.prospectClient.id, newProspectId));
+  }
+
   return Response.json(row);
 }
 
@@ -76,5 +90,10 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/leads
   const [row] = await db.delete(schema.lead).where(eq(schema.lead.id, Number(id))).returning();
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+
+  if (row.prospectClientId) {
+    await db.update(schema.prospectClient).set({ status: "prospect", updatedAt: new Date() }).where(eq(schema.prospectClient.id, row.prospectClientId));
+  }
+
   return Response.json({ ok: true });
 }

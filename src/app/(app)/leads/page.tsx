@@ -3,7 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
 import { DataTable } from "@/components/data-table";
@@ -33,6 +34,7 @@ interface Lead {
   borTimestamp: string | null;
   quoteTimestamp: string | null;
   comments: string | null;
+  prospectClientId: number | null;
   producerName: string | null;
   producerCode: string | null;
   insurerName: string | null;
@@ -42,6 +44,7 @@ export default function LeadsPage() {
   const user = useCurrentUser();
   const canManage = hasRole(user.role, "manager");
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -50,6 +53,28 @@ export default function LeadsPage() {
   const [rowSelection, setRowSelection] = useState<Record<string, true>>({});
   const [formOpen, setFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [convertDefaults, setConvertDefaults] = useState<Partial<LeadFormValues> | null>(null);
+
+  const convertProspectId = searchParams.get("convertProspect");
+
+  useEffect(() => {
+    if (!convertProspectId) return;
+    fetch(`/api/prospects/${convertProspectId}`)
+      .then((r) => r.json())
+      .then((prospect) => {
+        if (prospect.error) return;
+        setConvertDefaults({
+          prospectName: prospect.clientName,
+          prospectClientId: String(prospect.id),
+          producerId: String(prospect.producerId),
+          currentInsurerId: prospect.currentInsurerId ? String(prospect.currentInsurerId) : undefined,
+          cob: prospect.lob ?? "General",
+          estimatedPremium: prospect.premiums ?? "",
+        });
+        setFormOpen(true);
+        window.history.replaceState(null, "", "/leads");
+      });
+  }, [convertProspectId]);
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["leads"],
@@ -66,11 +91,12 @@ export default function LeadsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: LeadFormValues & { id?: number }) => {
-      const { id, producerId, currentInsurerId, ...rest } = values;
+      const { id, producerId, currentInsurerId, prospectClientId, ...rest } = values;
       const body = {
         ...rest,
         producerId: Number(producerId),
         currentInsurerId: currentInsurerId ? Number(currentInsurerId) : null,
+        prospectClientId: prospectClientId ? Number(prospectClientId) : null,
       };
       const res = await fetch(id ? `/api/leads/${id}` : "/api/leads", {
         method: id ? "PUT" : "POST",
@@ -82,6 +108,7 @@ export default function LeadsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
       toast.success(editingLead ? "Lead updated" : "Lead created");
       closeForm();
     },
@@ -128,6 +155,7 @@ export default function LeadsPage() {
   function closeForm() {
     setFormOpen(false);
     setEditingLead(null);
+    setConvertDefaults(null);
   }
 
   const selectedCount = Object.keys(rowSelection).length;
@@ -222,9 +250,12 @@ export default function LeadsPage() {
     [canManage, deleteMutation],
   );
 
-  const editDefaults: Partial<LeadFormValues> | undefined = editingLead
+  const editDefaults: Partial<LeadFormValues> | undefined = convertDefaults
+    ? convertDefaults
+    : editingLead
     ? {
         prospectName: editingLead.prospectName,
+        prospectClientId: editingLead.prospectClientId ? String(editingLead.prospectClientId) : undefined,
         producerId: String(editingLead.producerId),
         startWorkingDate: editingLead.startWorkingDate,
         rfqType: editingLead.rfqType,
@@ -310,7 +341,7 @@ export default function LeadsPage() {
         defaults={editDefaults}
         onSubmit={(values) => saveMutation.mutate({ ...values, id: editingLead?.id })}
         isPending={saveMutation.isPending}
-        title={editingLead ? "Edit Lead" : "New Lead"}
+        title={editingLead ? "Edit Lead" : convertDefaults ? "Convert Prospect to Lead" : "New Lead"}
         userRole={user.role}
       />
     </div>

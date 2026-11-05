@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     producerId, prospectName, startWorkingDate, rfqType, cob,
     bor, quoted, status, estimatedPremium, commission,
     currentInsurerId, city, borTimestamp, quoteTimestamp, comments,
+    prospectClientId,
   } = body;
 
   if (!prospectName || !startWorkingDate || !rfqType || !cob)
@@ -81,8 +82,16 @@ export async function POST(request: Request) {
       borTimestamp: borTimestamp || null,
       quoteTimestamp: quoteTimestamp || null,
       comments: comments || null,
+      prospectClientId: prospectClientId ? Number(prospectClientId) : null,
     })
     .returning();
+
+  if (prospectClientId) {
+    await db
+      .update(schema.prospectClient)
+      .set({ status: "converted", updatedAt: new Date() })
+      .where(eq(schema.prospectClient.id, Number(prospectClientId)));
+  }
 
   return Response.json(row, { status: 201 });
 }

@@ -7,6 +7,7 @@ export const leadStatusEnum = pgEnum("lead_status", ["Secured", "Pending", "Lost
 export const rfqTypeEnum = pgEnum("rfq_type", ["New", "Renewal"]);
 export const cobTypeEnum = pgEnum("cob_type", ["General", "Medical", "Motor"]);
 export const employmentStatusEnum = pgEnum("employment_status", ["Active", "Resigned", "Transferred"]);
+export const prospectStatusEnum = pgEnum("prospect_status", ["prospect", "converted", "inactive"]);
 
 export const user = pgTable("user", {
   id: uuid().primaryKey(),
@@ -93,6 +94,7 @@ export const lead = pgTable("lead", {
   status: leadStatusEnum().notNull().default("Pending"),
   estimatedPremium: numeric({ precision: 15, scale: 2 }).notNull().default("0"),
   commission: numeric({ precision: 15, scale: 2 }),
+  prospectClientId: integer().references(() => prospectClient.id),
   currentInsurerId: integer().references(() => insuranceCompany.id),
   city: text().notNull().default("Jeddah"),
   borTimestamp: date(),
@@ -110,6 +112,7 @@ export const prospectClient = pgTable("prospect_client", {
   month: text(),
   currentInsurerId: integer().references(() => insuranceCompany.id),
   lob: cobTypeEnum(),
+  status: prospectStatusEnum().notNull().default("prospect"),
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
 });

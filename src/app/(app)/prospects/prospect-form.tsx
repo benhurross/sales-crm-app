@@ -76,7 +76,7 @@ export function ProspectFormDialog({ open, onOpenChange, defaults, onSubmit, isP
               <select id="producerId" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("producerId")}>
                 <option value="">Select producer...</option>
                 {producers.map((p) => (
-                  <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
               {form.formState.errors.producerId && <p className="text-xs text-destructive">{form.formState.errors.producerId.message}</p>}

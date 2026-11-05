@@ -47,6 +47,7 @@ const STATUS_COLORS: Record<string, string> = {
 interface DashboardData {
   leads: DashboardLead[];
   producers: { id: number; name: string; annualTarget: string }[];
+  prospects: { total: number; converted: number };
 }
 
 export default function DashboardPage() {
@@ -144,6 +145,19 @@ export default function DashboardPage() {
               Clear filters
             </button>
           )}
+        </div>
+      )}
+
+      {/* Prospect Pipeline */}
+      {data?.prospects && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <KpiCard label="Total Prospects" value={String(data.prospects.total)} color="text-blue-600 dark:text-blue-400" />
+          <KpiCard label="Converted to Leads" value={String(data.prospects.converted)} color="text-emerald-600 dark:text-emerald-400" />
+          <KpiCard
+            label="Conversion Rate"
+            value={data.prospects.total > 0 ? `${((data.prospects.converted / data.prospects.total) * 100).toFixed(1)}%` : "0%"}
+            sub={`${data.prospects.total - data.prospects.converted} unconverted`}
+          />
         </div>
       )}
 

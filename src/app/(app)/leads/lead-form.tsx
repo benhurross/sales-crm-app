@@ -2,6 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
+import { Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 const leadSchema = z.object({
   prospectName: z.string().min(1, "Required"),
+  prospectClientId: z.string().optional(),
   producerId: z.string().min(1, "Select a producer"),
   startWorkingDate: z.string().min(1, "Required"),
   rfqType: z.enum(["New", "Renewal"]),
@@ -32,6 +35,16 @@ export type LeadFormValues = z.infer<typeof leadSchema>;
 
 interface Producer { id: number; code: string; name: string }
 interface Insurer { id: number; name: string }
+interface ProspectSuggestion {
+  id: number;
+  clientName: string;
+  producerId: number;
+  premiums: string | null;
+  currentInsurerId: number | null;
+  lob: string | null;
+  status: string;
+  producerName: string | null;
+}
 
 interface LeadFormProps {
   open: boolean;
@@ -48,6 +61,7 @@ export function LeadFormDialog({ open, onOpenChange, defaults, onSubmit, isPendi
     resolver: zodResolver(leadSchema),
     values: {
       prospectName: defaults?.prospectName ?? "",
+      prospectClientId: defaults?.prospectClientId ?? undefined,
       producerId: defaults?.producerId ?? "",
       startWorkingDate: defaults?.startWorkingDate ?? new Date().toISOString().slice(0, 10),
       rfqType: defaults?.rfqType ?? "New",
@@ -86,8 +100,23 @@ export function LeadFormDialog({ open, onOpenChange, defaults, onSubmit, isPendi
         <form id="lead-form" onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
           <div className="col-span-2 space-y-1.5">
             <Label htmlFor="prospectName">Prospect Name</Label>
-            <Input id="prospectName" {...form.register("prospectName")} />
+            <ProspectAutocomplete
+              value={form.watch("prospectName")}
+              onChange={(name) => form.setValue("prospectName", name)}
+              onSelect={(prospect) => {
+                form.setValue("prospectName", prospect.clientName);
+                form.setValue("prospectClientId", String(prospect.id));
+                if (!isSalesman) form.setValue("producerId", String(prospect.producerId));
+                if (prospect.currentInsurerId) form.setValue("currentInsurerId", String(prospect.currentInsurerId));
+                if (prospect.lob) form.setValue("cob", prospect.lob as "General" | "Medical" | "Motor");
+                if (prospect.premiums) form.setValue("estimatedPremium", prospect.premiums);
+              }}
+              disabled={!!defaults?.prospectClientId}
+            />
             {form.formState.errors.prospectName && <p className="text-xs text-destructive">{form.formState.errors.prospectName.message}</p>}
+            {form.watch("prospectClientId") && (
+              <p className="text-xs text-muted-foreground">Linked to prospect record</p>
+            )}
           </div>
 
           {!isSalesman && (
@@ -96,7 +125,7 @@ export function LeadFormDialog({ open, onOpenChange, defaults, onSubmit, isPendi
               <select id="producerId" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("producerId")}>
                 <option value="">Select producer...</option>
                 {producers.map((p) => (
-                  <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
               {form.formState.errors.producerId && <p className="text-xs text-destructive">{form.formState.errors.producerId.message}</p>}
@@ -178,6 +207,83 @@ export function LeadFormDialog({ open, onOpenChange, defaults, onSubmit, isPendi
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ProspectAutocomplete({
+  value,
+  onChange,
+  onSelect,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (prospect: ProspectSuggestion) => void;
+  disabled?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const { data: suggestions = [] } = useQuery<ProspectSuggestion[]>({
+    queryKey: ["prospect-search", query],
+    queryFn: () => fetch(`/api/prospects/search?q=${encodeURIComponent(query)}`).then((r) => r.json()),
+    enabled: query.length >= 2,
+  });
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    onChange(v);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setQuery(v);
+      if (v.length >= 2) setShowDropdown(true);
+    }, 300);
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+        <Input
+          placeholder="Search or type prospect name..."
+          className="pl-8"
+          value={value}
+          onChange={handleInputChange}
+          onFocus={() => { if (suggestions.length > 0) setShowDropdown(true); }}
+          disabled={disabled}
+        />
+      </div>
+      {showDropdown && suggestions.length > 0 && (
+        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover shadow-md">
+          {suggestions.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
+              onClick={() => {
+                onSelect(s);
+                setShowDropdown(false);
+              }}
+            >
+              <span className="font-medium">{s.clientName}</span>
+              {s.producerName && <span className="text-xs text-muted-foreground">{s.producerName}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
