@@ -114,7 +114,7 @@ export default function ProspectsPage() {
       {
         id: "producer",
         header: "Producer",
-        accessorFn: (row) => row.producerCode ? `${row.producerCode} - ${row.producerName}` : row.producerName,
+        accessorFn: (row) => row.producerName,
         size: 160,
       },
       {
@@ -188,7 +188,7 @@ export default function ProspectsPage() {
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input placeholder="Search clients..." className="h-9 w-56 pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="flex h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={lobFilter} onChange={(e) => setLobFilter(e.target.value)}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={lobFilter} onChange={(e) => setLobFilter(e.target.value)}>
           <option value="">All LOB</option>
           <option value="General">General</option>
           <option value="Medical">Medical</option>

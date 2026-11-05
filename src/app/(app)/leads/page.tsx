@@ -152,7 +152,7 @@ export default function LeadsPage() {
       {
         id: "producer",
         header: "Producer",
-        accessorFn: (row) => row.producerCode ? `${row.producerCode} - ${row.producerName}` : row.producerName,
+        accessorFn: (row) => row.producerName,
         size: 160,
       },
       {
@@ -257,19 +257,19 @@ export default function LeadsPage() {
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input placeholder="Search prospects..." className="h-9 w-56 pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="flex h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="">All Status</option>
           <option value="Secured">Secured</option>
           <option value="Pending">Pending</option>
           <option value="Lost">Lost</option>
         </select>
-        <select className="flex h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={cobFilter} onChange={(e) => setCobFilter(e.target.value)}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={cobFilter} onChange={(e) => setCobFilter(e.target.value)}>
           <option value="">All COB</option>
           <option value="General">General</option>
           <option value="Medical">Medical</option>
           <option value="Motor">Motor</option>
         </select>
-        <select className="flex h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={rfqFilter} onChange={(e) => setRfqFilter(e.target.value)}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={rfqFilter} onChange={(e) => setRfqFilter(e.target.value)}>
           <option value="">All RFQ</option>
           <option value="New">New</option>
           <option value="Renewal">Renewal</option>

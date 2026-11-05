@@ -75,7 +75,7 @@ export function DataTable<TData extends Record<string, any>>({
     <div className="space-y-2">
       <div className="max-h-[calc(100dvh-280px)] overflow-auto rounded-xl border bg-card shadow-glass glass-sheen">
         <Table>
-          <TableHeader className="sticky top-0 z-10 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+          <TableHeader className="sticky top-0 z-10 bg-muted backdrop-blur supports-[backdrop-filter]:bg-muted/90">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id}>
                 {hg.headers.map((header) => (

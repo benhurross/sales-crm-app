@@ -93,7 +93,6 @@ export default function ReportsPage() {
 
   const columns = useMemo<LegacyColumnDef<ProducerReportRow, unknown>[]>(
     () => [
-      { accessorKey: "code", header: "Code", size: 70 },
       { accessorKey: "name", header: "Producer", size: 160 },
       {
         accessorKey: "totalLeads",
@@ -224,21 +223,21 @@ export default function ReportsPage() {
 
         {!isSalesman && (
           <select
-            className="flex h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+            className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm"
             value={producerFilter}
             onChange={(e) => setProducerFilter(e.target.value)}
           >
             <option value="">All Producers</option>
             {producers.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.code} - {p.name}
+                {p.name}
               </option>
             ))}
           </select>
         )}
 
         <select
-          className="flex h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+          className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >

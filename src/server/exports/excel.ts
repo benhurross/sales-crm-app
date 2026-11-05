@@ -22,21 +22,20 @@ export async function generateExcel(
 
   // -- Column widths
   ws.columns = [
-    { width: 8 },   // A: Code
-    { width: 22 },  // B: Producer
-    { width: 8 },   // C: Leads
-    { width: 8 },   // D: BOR
-    { width: 10 },  // E: Secured
-    { width: 10 },  // F: Pending
-    { width: 8 },   // G: Lost
-    { width: 18 },  // H: Secured Premium
-    { width: 18 },  // I: Total Premium
-    { width: 18 },  // J: Target
-    { width: 14 },  // K: Achievement
+    { width: 24 },  // A: Producer
+    { width: 8 },   // B: Leads
+    { width: 8 },   // C: BOR
+    { width: 10 },  // D: Secured
+    { width: 10 },  // E: Pending
+    { width: 8 },   // F: Lost
+    { width: 18 },  // G: Secured Premium
+    { width: 18 },  // H: Total Premium
+    { width: 18 },  // I: Target
+    { width: 14 },  // J: Achievement
   ];
 
   // -- Letterhead
-  ws.mergeCells("A1:K1");
+  ws.mergeCells("A1:J1");
   const titleRow = ws.getRow(1);
   titleRow.getCell(1).value = "AP Plus Insurance Brokerage";
   titleRow.getCell(1).font = { name: "Arial", bold: true, size: 14, color: { argb: `FF${BRAND_BLUE}` } };
@@ -44,7 +43,7 @@ export async function generateExcel(
   titleRow.height = 30;
 
   const subtitleRowNum = 2;
-  ws.mergeCells(`A${subtitleRowNum}:K${subtitleRowNum}`);
+  ws.mergeCells(`A${subtitleRowNum}:J${subtitleRowNum}`);
   const subtitleRow = ws.getRow(subtitleRowNum);
   subtitleRow.getCell(1).value = "Sales Report";
   subtitleRow.getCell(1).font = { name: "Arial", bold: true, size: 12, color: { argb: `FF${BRAND_BLUE}` } };
@@ -60,14 +59,14 @@ export async function generateExcel(
 
   const filterRowNum = subtitleRowNum + 1;
   if (filterParts.length > 0) {
-    ws.mergeCells(`A${filterRowNum}:K${filterRowNum}`);
+    ws.mergeCells(`A${filterRowNum}:J${filterRowNum}`);
     const filterRow = ws.getRow(filterRowNum);
     filterRow.getCell(1).value = filterParts.join("  |  ");
     filterRow.getCell(1).font = { name: "Arial", size: 9, italic: true, color: { argb: "FF666666" } };
     filterRow.getCell(1).alignment = { horizontal: "center" };
   }
 
-  ws.mergeCells(`A${filterRowNum + 1}:K${filterRowNum + 1}`);
+  ws.mergeCells(`A${filterRowNum + 1}:J${filterRowNum + 1}`);
   const dateRow = ws.getRow(filterRowNum + 1);
   dateRow.getCell(1).value = `Generated: ${new Date().toLocaleDateString("en-SA")}`;
   dateRow.getCell(1).font = { name: "Arial", size: 8, color: { argb: "FF999999" } };
@@ -75,14 +74,14 @@ export async function generateExcel(
 
   // -- Header row
   const headerRowNum = filterRowNum + 3;
-  const headers = ["Code", "Producer", "Leads", "BOR", "Secured", "Pending", "Lost", "Secured Premium", "Total Premium", "Target", "Achievement"];
+  const headers = ["Producer", "Leads", "BOR", "Secured", "Pending", "Lost", "Secured Premium", "Total Premium", "Target", "Achievement"];
   const headerRow = ws.getRow(headerRowNum);
   headers.forEach((h, i) => {
     const cell = headerRow.getCell(i + 1);
     cell.value = h;
     cell.font = HEADER_FONT;
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${BRAND_BLUE}` } };
-    cell.alignment = { horizontal: i <= 1 ? "left" : "center", vertical: "middle" };
+    cell.alignment = { horizontal: i === 0 ? "left" : "center", vertical: "middle" };
     cell.border = {
       bottom: { style: "thin", color: { argb: "FF333333" } },
     };
@@ -92,26 +91,25 @@ export async function generateExcel(
   // -- Data rows
   rows.forEach((r, idx) => {
     const row = ws.getRow(headerRowNum + 1 + idx);
-    row.getCell(1).value = r.code;
-    row.getCell(2).value = r.name;
-    row.getCell(3).value = r.totalLeads;
-    row.getCell(4).value = r.borCount;
-    row.getCell(5).value = r.securedCount;
-    row.getCell(6).value = r.pendingCount;
-    row.getCell(7).value = r.lostCount;
-    row.getCell(8).value = r.securedPremium;
+    row.getCell(1).value = r.name;
+    row.getCell(2).value = r.totalLeads;
+    row.getCell(3).value = r.borCount;
+    row.getCell(4).value = r.securedCount;
+    row.getCell(5).value = r.pendingCount;
+    row.getCell(6).value = r.lostCount;
+    row.getCell(7).value = r.securedPremium;
+    row.getCell(7).numFmt = NUMBER_FMT;
+    row.getCell(8).value = r.totalPremium;
     row.getCell(8).numFmt = NUMBER_FMT;
-    row.getCell(9).value = r.totalPremium;
+    row.getCell(9).value = r.annualTarget;
     row.getCell(9).numFmt = NUMBER_FMT;
-    row.getCell(10).value = r.annualTarget;
-    row.getCell(10).numFmt = NUMBER_FMT;
-    row.getCell(11).value = r.achievementPct / 100;
-    row.getCell(11).numFmt = PCT_FMT;
+    row.getCell(10).value = r.achievementPct / 100;
+    row.getCell(10).numFmt = PCT_FMT;
 
-    for (let c = 1; c <= 11; c++) {
+    for (let c = 1; c <= 10; c++) {
       const cell = row.getCell(c);
       cell.font = BODY_FONT;
-      cell.alignment = { horizontal: c <= 2 ? "left" : "center" };
+      cell.alignment = { horizontal: c === 1 ? "left" : "center" };
       if (idx % 2 === 1) {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${BRAND_BLUE_LIGHT}` } };
       }
@@ -122,24 +120,23 @@ export async function generateExcel(
   const summaryRowNum = headerRowNum + 1 + rows.length + 1;
   const sRow = ws.getRow(summaryRowNum);
   sRow.getCell(1).value = "TOTAL";
-  sRow.getCell(2).value = "";
-  sRow.getCell(3).value = summary.totalLeads;
-  sRow.getCell(4).value = summary.totalBor;
-  sRow.getCell(5).value = summary.totalSecured;
-  sRow.getCell(6).value = summary.totalPending;
-  sRow.getCell(7).value = summary.totalLost;
-  sRow.getCell(8).value = summary.securedPremium;
+  sRow.getCell(2).value = summary.totalLeads;
+  sRow.getCell(3).value = summary.totalBor;
+  sRow.getCell(4).value = summary.totalSecured;
+  sRow.getCell(5).value = summary.totalPending;
+  sRow.getCell(6).value = summary.totalLost;
+  sRow.getCell(7).value = summary.securedPremium;
+  sRow.getCell(7).numFmt = NUMBER_FMT;
+  sRow.getCell(8).value = summary.totalPremium;
   sRow.getCell(8).numFmt = NUMBER_FMT;
-  sRow.getCell(9).value = summary.totalPremium;
-  sRow.getCell(9).numFmt = NUMBER_FMT;
-  sRow.getCell(10).value = "";
-  sRow.getCell(11).value = summary.successRate;
-  sRow.getCell(11).numFmt = PCT_FMT;
+  sRow.getCell(9).value = "";
+  sRow.getCell(10).value = summary.successRate;
+  sRow.getCell(10).numFmt = PCT_FMT;
 
-  for (let c = 1; c <= 11; c++) {
+  for (let c = 1; c <= 10; c++) {
     const cell = sRow.getCell(c);
     cell.font = { ...BODY_FONT, bold: true };
-    cell.alignment = { horizontal: c <= 2 ? "left" : "center" };
+    cell.alignment = { horizontal: c === 1 ? "left" : "center" };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${BRAND_BLUE}` } };
     cell.font = { ...HEADER_FONT };
     cell.border = {

@@ -32,7 +32,6 @@ interface Producer {
 }
 
 const schema = z.object({
-  code: z.string().min(1, "Required"),
   name: z.string().min(1, "Required"),
   email: z.string().email("Invalid email").or(z.literal("")).optional(),
   region: z.string().min(1, "Required"),
@@ -103,7 +102,6 @@ export default function SalesmenPage() {
 
   const columns = useMemo<LegacyColumnDef<Producer, unknown>[]>(
     () => [
-      { accessorKey: "code", header: "Code", size: 80 },
       { accessorKey: "name", header: "Name" },
       { accessorKey: "email", header: "Email", cell: ({ getValue }) => (getValue() as string) || "--" },
       { accessorKey: "region", header: "Region", size: 100 },
@@ -187,8 +185,8 @@ function SalesmanFormDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     values: editing
-      ? { code: editing.code, name: editing.name, email: editing.email ?? "", region: editing.region, title: editing.title ?? "", employmentStatus: editing.employmentStatus as FormValues["employmentStatus"], joinDate: editing.joinDate ?? "" }
-      : { code: "", name: "", email: "", region: "Jeddah", title: "", employmentStatus: "Active", joinDate: "" },
+      ? { name: editing.name, email: editing.email ?? "", region: editing.region, title: editing.title ?? "", employmentStatus: editing.employmentStatus as FormValues["employmentStatus"], joinDate: editing.joinDate ?? "" }
+      : { name: "", email: "", region: "Jeddah", title: "", employmentStatus: "Active", joinDate: "" },
   });
 
   return (
@@ -198,11 +196,6 @@ function SalesmanFormDialog({
           <DialogTitle>{editing ? "Edit Salesman" : "Add Salesman"}</DialogTitle>
         </DialogHeader>
         <form id="salesman-form" onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="code">Code</Label>
-            <Input id="code" placeholder="e.g. J-2" {...form.register("code")} />
-            {form.formState.errors.code && <p className="text-xs text-destructive">{form.formState.errors.code.message}</p>}
-          </div>
           <div className="space-y-1.5">
             <Label htmlFor="name">Name</Label>
             <Input id="name" {...form.register("name")} />
@@ -223,7 +216,7 @@ function SalesmanFormDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="employmentStatus">Status</Label>
-            <select id="employmentStatus" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("employmentStatus")}>
+            <select id="employmentStatus" className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm shadow-sm" {...form.register("employmentStatus")}>
               <option value="Active">Active</option>
               <option value="Resigned">Resigned</option>
               <option value="Transferred">Transferred</option>

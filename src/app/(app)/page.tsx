@@ -2,13 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -46,7 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 interface DashboardData {
   leads: DashboardLead[];
-  producers: { id: number; code: string; name: string; annualTarget: string }[];
+  producers: { id: number; name: string; annualTarget: string }[];
 }
 
 export default function DashboardPage() {
@@ -88,7 +88,7 @@ export default function DashboardPage() {
     }
     return data.producers
       .map((p) => ({
-        name: `${p.code} - ${p.name}`,
+        name: p.name,
         secured: securedMap.get(p.id) ?? 0,
         target: Number(p.annualTarget),
       }))
@@ -112,25 +112,25 @@ export default function DashboardPage() {
       {!isSalesman && (
         <div className="flex flex-wrap items-center gap-3">
           <select
-            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            className="h-9 rounded-md border border-input bg-popover px-3 text-sm"
             value={producerFilter}
             onChange={(e) => setProducerFilter(e.target.value)}
           >
             <option value="">All Producers</option>
             {data?.producers.map((p) => (
-              <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
           <input
             type="date"
-            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            className="h-9 rounded-md border border-input bg-popover px-3 text-sm"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             placeholder="From"
           />
           <input
             type="date"
-            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            className="h-9 rounded-md border border-input bg-popover px-3 text-sm"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             placeholder="To"
@@ -179,55 +179,73 @@ export default function DashboardPage() {
       {/* Charts Row 1: Pie charts */}
       <div className="grid gap-4 md:grid-cols-2">
         <ChartCard title="Leads by RFQ Type">
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={260}>
             <PieChart>
-              <Pie data={byRfq} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} label={({ name, payload }) => `${name} (${(payload as { count?: number }).count ?? ""})`}>
+              <Pie data={byRfq} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} strokeWidth={0} label={({ name, payload }) => `${name} (${(payload as { count?: number }).count ?? ""})`}>
                 {byRfq.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
               </Pie>
-              <Tooltip formatter={(v) => formatAmount(Number(v))} />
-              <Legend />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatAmount(Number(v))} />} />
+              <Legend iconType="circle" iconSize={8} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Leads by COB">
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={260}>
             <PieChart>
-              <Pie data={byCob} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} label={({ name, payload }) => `${name} (${(payload as { count?: number }).count ?? ""})`}>
+              <Pie data={byCob} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} strokeWidth={0} label={({ name, payload }) => `${name} (${(payload as { count?: number }).count ?? ""})`}>
                 {byCob.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
               </Pie>
-              <Tooltip formatter={(v) => formatAmount(Number(v))} />
-              <Legend />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatAmount(Number(v))} />} />
+              <Legend iconType="circle" iconSize={8} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>
 
-      {/* Charts Row 2: Bar + Line */}
+      {/* Charts Row 2: Bar + Area */}
       <div className="grid gap-4 md:grid-cols-2">
         <ChartCard title="Leads by City">
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={byCity}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="name" className="fill-muted-foreground" tick={{ fontSize: 12 }} />
-              <YAxis className="fill-muted-foreground" tick={{ fontSize: 12 }} tickFormatter={(v) => `${RIYAL}${(v / 1000).toFixed(0)}K`} />
-              <Tooltip formatter={(v) => formatAmount(Number(v))} />
-              <Bar dataKey="value" name="Premium" radius={[4, 4, 0, 0]}>
-                {byCity.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={byCity} barCategoryGap="20%">
+              <defs>
+                {CHART_COLORS.map((c, i) => (
+                  <linearGradient key={i} id={`bar-grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={c} stopOpacity={0.9} />
+                    <stop offset="100%" stopColor={c} stopOpacity={0.6} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${RIYAL}${(v / 1000).toFixed(0)}K`} />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatAmount(Number(v))} />} cursor={{ fill: "var(--accent)", opacity: 0.3 }} />
+              <Bar dataKey="value" name="Premium" radius={[6, 6, 0, 0]}>
+                {byCity.map((_, i) => <Cell key={i} fill={`url(#bar-grad-${i % CHART_COLORS.length})`} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Monthly Lead Trend">
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={monthly}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="name" className="fill-muted-foreground" tick={{ fontSize: 12 }} />
-              <YAxis className="fill-muted-foreground" tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(v, name) => name === "count" ? v : formatAmount(Number(v))} />
-              <Line type="monotone" dataKey="count" name="Leads" stroke="var(--chart-1)" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="value" name="Premium" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 4 }} yAxisId={0} />
-              <Legend />
-            </LineChart>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={monthly}>
+              <defs>
+                <linearGradient id="area-leads" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="area-premium" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltip formatter={(v, name) => name === "Leads" ? String(v) : formatAmount(Number(v))} />} />
+              <Area type="monotone" dataKey="count" name="Leads" stroke="var(--chart-1)" strokeWidth={2.5} fill="url(#area-leads)" dot={{ r: 3, fill: "var(--chart-1)", strokeWidth: 0 }} activeDot={{ r: 5 }} />
+              <Area type="monotone" dataKey="value" name="Premium" stroke="var(--chart-2)" strokeWidth={2.5} fill="url(#area-premium)" dot={{ r: 3, fill: "var(--chart-2)", strokeWidth: 0 }} activeDot={{ r: 5 }} />
+              <Legend iconType="circle" iconSize={8} />
+            </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>
@@ -235,29 +253,29 @@ export default function DashboardPage() {
       {/* Charts Row 3: Quarterly + Producer */}
       <div className="grid gap-4 md:grid-cols-2">
         <ChartCard title="Quarterly Performance">
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={quarterly}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="quarter" className="fill-muted-foreground" tick={{ fontSize: 12 }} />
-              <YAxis className="fill-muted-foreground" tick={{ fontSize: 12 }} tickFormatter={(v) => `${RIYAL}${(v / 1000).toFixed(0)}K`} />
-              <Tooltip formatter={(v) => formatAmount(Number(v))} />
-              <Bar dataKey="secured" name="Secured" fill={STATUS_COLORS.Secured} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="pending" name="Pending" fill={STATUS_COLORS.Pending} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="lost" name="Lost" fill={STATUS_COLORS.Lost} radius={[4, 4, 0, 0]} />
-              <Legend />
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={quarterly} barCategoryGap="20%">
+              <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
+              <XAxis dataKey="quarter" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${RIYAL}${(v / 1000).toFixed(0)}K`} />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatAmount(Number(v))} />} cursor={{ fill: "var(--accent)", opacity: 0.3 }} />
+              <Bar dataKey="secured" name="Secured" fill={STATUS_COLORS.Secured} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="pending" name="Pending" fill={STATUS_COLORS.Pending} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="lost" name="Lost" fill={STATUS_COLORS.Lost} radius={[6, 6, 0, 0]} />
+              <Legend iconType="circle" iconSize={8} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Target vs Secured by Producer">
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={producerPerf} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis type="number" className="fill-muted-foreground" tick={{ fontSize: 12 }} tickFormatter={(v) => `${RIYAL}${(v / 1000).toFixed(0)}K`} />
-              <YAxis dataKey="name" type="category" className="fill-muted-foreground" tick={{ fontSize: 11 }} width={120} />
-              <Tooltip formatter={(v) => formatAmount(Number(v))} />
-              <Bar dataKey="target" name="Target" fill="var(--chart-5)" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="secured" name="Secured" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
-              <Legend />
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={producerPerf} layout="vertical" barCategoryGap="25%">
+              <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.5} />
+              <XAxis type="number" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${RIYAL}${(v / 1000).toFixed(0)}K`} />
+              <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} width={120} />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatAmount(Number(v))} />} cursor={{ fill: "var(--accent)", opacity: 0.3 }} />
+              <Bar dataKey="target" name="Target" fill="var(--chart-5)" radius={[0, 6, 6, 0]} />
+              <Bar dataKey="secured" name="Secured" fill="var(--chart-1)" radius={[0, 6, 6, 0]} />
+              <Legend iconType="circle" iconSize={8} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -279,8 +297,36 @@ function KpiCard({ label, value, sub, color }: { label: string; value: string; s
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border bg-card p-5 shadow-glass glass-sheen">
-      <h3 className="mb-3 text-sm font-semibold">{title}</h3>
+      <h3 className="mb-4 text-sm font-semibold">{title}</h3>
       {children}
+    </div>
+  );
+}
+
+function ChartTooltip({
+  active,
+  payload,
+  label,
+  formatter,
+}: {
+  active?: boolean;
+  payload?: { name: string; value: number; color: string }[];
+  label?: string;
+  formatter: (v: number, name: string) => string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border bg-popover px-3 py-2 text-sm shadow-lg">
+      {label && <p className="mb-1.5 font-medium text-popover-foreground">{label}</p>}
+      <div className="space-y-1">
+        {payload.map((entry, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="text-muted-foreground">{entry.name}:</span>
+            <span className="font-medium tabular-nums text-popover-foreground">{formatter(entry.value, entry.name)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

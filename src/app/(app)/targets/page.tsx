@@ -66,7 +66,6 @@ export default function TargetsPage() {
 
   const columns = useMemo<LegacyColumnDef<ProducerTarget, unknown>[]>(
     () => [
-      { accessorKey: "code", header: "Code", size: 70 },
       { accessorKey: "name", header: "Producer" },
       { accessorKey: "region", header: "Region", size: 90 },
       {
@@ -199,7 +198,7 @@ export default function TargetsPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium truncate">{p.code} - {p.name}</span>
+                          <span className="font-medium truncate">{p.name}</span>
                           <span className="shrink-0 tabular-nums">{formatAmount(Number(p.securedPremium))}</span>
                         </div>
                         <div className="mt-1 flex items-center gap-2">

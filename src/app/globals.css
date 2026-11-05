@@ -11,6 +11,7 @@
  * Chart slots were checked with the dataviz palette validator (CVD, band, 3:1 contrast).
  */
 :root {
+  color-scheme: light;
   --app-font: var(--font-plex), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
 
   --background: #f7faff;
@@ -80,6 +81,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: #0d1526;
   --foreground: #e6ebf4;
   --card: var(--glass);
@@ -215,6 +217,36 @@
   }
   .recharts-text {
     font-size: 0.75rem;
+    fill: var(--muted-foreground);
+  }
+  .recharts-cartesian-grid line {
+    stroke: var(--border);
+  }
+  .recharts-tooltip-wrapper .recharts-default-tooltip {
+    background: var(--popover) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.1) !important;
+    color: var(--popover-foreground) !important;
+  }
+  .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-label {
+    color: var(--foreground) !important;
+    font-weight: 600;
+  }
+  .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item {
+    color: var(--muted-foreground) !important;
+  }
+  .recharts-legend-item-text {
+    color: var(--foreground) !important;
+    font-size: 0.75rem;
+  }
+  select {
+    color: var(--foreground);
+    background-color: var(--popover);
+  }
+  select option {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
   }
 }
 
