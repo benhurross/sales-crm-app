@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       .from(schema.producer)
       .where(eq(schema.producer.userId, session.user.id))
       .limit(1);
-    if (!myProducer) return Response.json({ leads: [], producers: [] });
+    if (!myProducer) return Response.json({ leads: [], producers: [], prospects: [] });
     producerFilter = myProducer.id;
   }
 
@@ -29,6 +29,10 @@ export async function GET(request: Request) {
       status: schema.lead.status,
       estimatedPremium: schema.lead.estimatedPremium,
       city: schema.lead.city,
+      bor: schema.lead.bor,
+      quoted: schema.lead.quoted,
+      commission: schema.lead.commission,
+      quoteTimestamp: schema.lead.quoteTimestamp,
       producerName: schema.producer.name,
       producerCode: schema.producer.code,
     })
@@ -39,7 +43,7 @@ export async function GET(request: Request) {
     ? await leadsQuery.where(eq(schema.lead.producerId, producerFilter))
     : await leadsQuery;
 
-  const producers = await db
+  const producersQuery = db
     .select({
       id: schema.producer.id,
       code: schema.producer.code,
@@ -49,23 +53,23 @@ export async function GET(request: Request) {
     .from(schema.producer)
     .orderBy(schema.producer.name);
 
-  const prospectStatsQuery = db
+  const producers = producerFilter
+    ? await producersQuery.where(eq(schema.producer.id, producerFilter))
+    : await producersQuery;
+
+  const prospectsQuery = db
     .select({
+      producerId: schema.prospectClient.producerId,
       total: count(),
       converted: count(sql`CASE WHEN ${schema.prospectClient.status} = 'converted' THEN 1 END`),
+      premiums: sql<number>`coalesce(sum(${schema.prospectClient.premiums}), 0)::float`,
     })
-    .from(schema.prospectClient);
+    .from(schema.prospectClient)
+    .groupBy(schema.prospectClient.producerId);
 
-  const [prospectStats] = producerFilter
-    ? await prospectStatsQuery.where(eq(schema.prospectClient.producerId, producerFilter))
-    : await prospectStatsQuery;
+  const prospects = producerFilter
+    ? await prospectsQuery.where(eq(schema.prospectClient.producerId, producerFilter))
+    : await prospectsQuery;
 
-  return Response.json({
-    leads,
-    producers,
-    prospects: {
-      total: prospectStats?.total ?? 0,
-      converted: prospectStats?.converted ?? 0,
-    },
-  });
+  return Response.json({ leads, producers, prospects });
 }

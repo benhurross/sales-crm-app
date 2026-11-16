@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   computeKpis,
-  groupByField,
-  monthlyTrend,
-  quarterlyPerformance,
+  monthOf,
+  pipelineAging,
+  statusBreakdown,
   type DashboardLead,
 } from "../src/lib/dashboard";
 
@@ -25,6 +25,30 @@ function lead(overrides: Partial<DashboardLead> = {}): DashboardLead {
 }
 
 describe("computeKpis", () => {
+  it("derives win rate, deal size, commission, quote and BOR rates", () => {
+    const kpis = computeKpis([
+      lead({ status: "Secured", estimatedPremium: "60000", commission: "6000", quoted: true, bor: true, startWorkingDate: "2025-03-01", quoteTimestamp: "2025-03-11" }),
+      lead({ status: "Secured", estimatedPremium: "40000", commission: "4000", quoted: true, rfqType: "Renewal", startWorkingDate: "2025-03-01", quoteTimestamp: "2025-03-21" }),
+      lead({ status: "Lost", estimatedPremium: "10000", commission: "999" }),
+      lead({ status: "Pending" }),
+    ]);
+    expect(kpis.winRate).toBeCloseTo(2 / 3);
+    expect(kpis.successRate).toBe(0.5);
+    expect(kpis.avgDealSize).toBe(50000);
+    expect(kpis.commissionEarned).toBe(10000);
+    expect(kpis.quoted).toBe(2);
+    expect(kpis.quoteRate).toBe(0.5);
+    expect(kpis.borRate).toBe(0.25);
+    expect(kpis.avgDaysToQuote).toBe(15);
+    expect(kpis.newLeads).toBe(3);
+    expect(kpis.renewalLeads).toBe(1);
+  });
+
+  it("has no average days to quote without quote dates", () => {
+    expect(computeKpis([lead()]).avgDaysToQuote).toBeNull();
+    expect(computeKpis([]).winRate).toBe(0);
+  });
+
   it("returns zeros for empty array", () => {
     const kpis = computeKpis([]);
     expect(kpis.totalLeads).toBe(0);
@@ -78,91 +102,42 @@ describe("computeKpis", () => {
   });
 });
 
-describe("groupByField", () => {
-  it("groups by rfqType", () => {
-    const leads = [
-      lead({ rfqType: "New", estimatedPremium: "10000" }),
-      lead({ rfqType: "Renewal", estimatedPremium: "20000" }),
-      lead({ rfqType: "New", estimatedPremium: "5000" }),
-    ];
-    const result = groupByField(leads, "rfqType");
-    const newGroup = result.find((r) => r.name === "New")!;
-    const renewalGroup = result.find((r) => r.name === "Renewal")!;
-    expect(newGroup.value).toBe(15000);
-    expect(newGroup.count).toBe(2);
-    expect(renewalGroup.value).toBe(20000);
-    expect(renewalGroup.count).toBe(1);
+describe("statusBreakdown", () => {
+  it("splits premium by status per group, sorted", () => {
+    const rows = statusBreakdown(
+      [
+        lead({ cob: "Motor", status: "Secured", estimatedPremium: "100" }),
+        lead({ cob: "Medical", status: "Lost", estimatedPremium: "50" }),
+        lead({ cob: "Motor", status: "Pending", estimatedPremium: "30" }),
+      ],
+      (l) => l.cob,
+    );
+    expect(rows).toEqual([
+      { name: "Medical", secured: 0, pending: 0, lost: 50 },
+      { name: "Motor", secured: 100, pending: 30, lost: 0 },
+    ]);
   });
 
-  it("groups by cob", () => {
-    const leads = [
-      lead({ cob: "General", estimatedPremium: "10000" }),
-      lead({ cob: "Medical", estimatedPremium: "20000" }),
-      lead({ cob: "General", estimatedPremium: "30000" }),
-    ];
-    const result = groupByField(leads, "cob");
-    expect(result.find((r) => r.name === "General")!.value).toBe(40000);
-    expect(result.find((r) => r.name === "Medical")!.value).toBe(20000);
-  });
-
-  it("groups by city", () => {
-    const leads = [
-      lead({ city: "Jeddah", estimatedPremium: "10000" }),
-      lead({ city: "Riyadh", estimatedPremium: "20000" }),
-      lead({ city: "Jeddah", estimatedPremium: "5000" }),
-    ];
-    const result = groupByField(leads, "city");
-    expect(result.find((r) => r.name === "Jeddah")!.count).toBe(2);
-    expect(result.find((r) => r.name === "Riyadh")!.count).toBe(1);
-  });
-
-  it("returns empty for no leads", () => {
-    expect(groupByField([], "rfqType")).toEqual([]);
+  it("groups by month with monthOf", () => {
+    const rows = statusBreakdown([lead({ startWorkingDate: "2025-03-15" }), lead({ startWorkingDate: "2025-01-02" })], monthOf);
+    expect(rows.map((r) => r.name)).toEqual(["2025-01", "2025-03"]);
   });
 });
 
-describe("monthlyTrend", () => {
-  it("groups by year-month sorted", () => {
-    const leads = [
-      lead({ startWorkingDate: "2025-01-10", estimatedPremium: "10000" }),
-      lead({ startWorkingDate: "2025-03-20", estimatedPremium: "20000" }),
-      lead({ startWorkingDate: "2025-01-25", estimatedPremium: "5000" }),
-    ];
-    const result = monthlyTrend(leads);
-    expect(result).toHaveLength(2);
-    expect(result[0].name).toBe("2025-01");
-    expect(result[0].value).toBe(15000);
-    expect(result[0].count).toBe(2);
-    expect(result[1].name).toBe("2025-03");
-    expect(result[1].value).toBe(20000);
-    expect(result[1].count).toBe(1);
-  });
-
-  it("returns empty for no leads", () => {
-    expect(monthlyTrend([])).toEqual([]);
-  });
-});
-
-describe("quarterlyPerformance", () => {
-  it("groups by quarter with status breakdown", () => {
-    const leads = [
-      lead({ startWorkingDate: "2025-01-10", status: "Secured", estimatedPremium: "50000" }),
-      lead({ startWorkingDate: "2025-02-15", status: "Pending", estimatedPremium: "20000" }),
-      lead({ startWorkingDate: "2025-04-10", status: "Lost", estimatedPremium: "10000" }),
-      lead({ startWorkingDate: "2025-05-20", status: "Secured", estimatedPremium: "30000" }),
-    ];
-    const result = quarterlyPerformance(leads);
-    expect(result).toHaveLength(2);
-    const q1 = result.find((r) => r.quarter === "Q1 2025")!;
-    const q2 = result.find((r) => r.quarter === "Q2 2025")!;
-    expect(q1.secured).toBe(50000);
-    expect(q1.pending).toBe(20000);
-    expect(q1.lost).toBe(0);
-    expect(q2.secured).toBe(30000);
-    expect(q2.lost).toBe(10000);
-  });
-
-  it("returns empty for no leads", () => {
-    expect(quarterlyPerformance([])).toEqual([]);
+describe("pipelineAging", () => {
+  it("buckets pending leads by days since start", () => {
+    const today = new Date("2025-06-30");
+    const rows = pipelineAging(
+      [
+        lead({ startWorkingDate: "2025-06-20", estimatedPremium: "10" }),
+        lead({ startWorkingDate: "2025-05-15", estimatedPremium: "20" }),
+        lead({ startWorkingDate: "2025-04-15", estimatedPremium: "30" }),
+        lead({ startWorkingDate: "2025-01-01", estimatedPremium: "40" }),
+        lead({ startWorkingDate: "2025-01-01", status: "Secured" }),
+      ],
+      today,
+    );
+    expect(rows.map((r) => r.count)).toEqual([1, 1, 1, 1]);
+    expect(rows.map((r) => r.value)).toEqual([10, 20, 30, 40]);
   });
 });
