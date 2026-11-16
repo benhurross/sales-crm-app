@@ -13,7 +13,11 @@ npm run dev         # start dev server on port 3400
 
 ## Deploy on RHEL
 
-Users open port 3600, served by Apache (httpd), which compresses responses and passes them to the app on `127.0.0.1:3601` (`npm start`). Needs Node 24, httpd, and Docker or Podman (with compose) on the server.
+Users open port 3600, served by Apache (httpd), which compresses responses and passes them to the app on `127.0.0.1:3601` (`npm start`). Needs Node 24, httpd, and Docker or Podman (with compose) on the server, plus Chromium's libraries for PDF exports:
+
+```bash
+sudo dnf install -y nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm pango cairo alsa-lib
+```
 
 ```bash
 sudo useradd --system --create-home salescrm
@@ -21,6 +25,7 @@ sudo mkdir -p /opt/sales-crm && sudo chown salescrm: /opt/sales-crm
 # clone the repo into /opt/sales-crm, then as salescrm:
 cp .env.example .env.local   # set BETTER_AUTH_SECRET
 npm ci
+npx playwright install chromium   # used for PDF exports
 npm run db:up
 npm run db:migrate           # creates empty tables only
 npm run build

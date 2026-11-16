@@ -71,7 +71,13 @@ export async function GET(request: Request) {
   const filters = { from, to, producer: producerName, status: statusParam };
 
   if (type === "pdf") {
-    const pdf = await generatePdf(rows, summary, filters);
+    let pdf: Buffer;
+    try {
+      pdf = await generatePdf(rows, summary, filters);
+    } catch (err) {
+      console.error(err);
+      return Response.json({ error: `PDF export failed: ${(err as Error).message.split("\n")[0]}` }, { status: 500 });
+    }
     return new Response(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",

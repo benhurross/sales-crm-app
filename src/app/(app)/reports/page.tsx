@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { Calendar, FileSpreadsheet, FileText, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
 import { DataTable } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
@@ -76,16 +77,16 @@ export default function ReportsPage() {
       if (producerFilter) params.set("producer", producerFilter);
       if (statusFilter) params.set("status", statusFilter);
       const res = await fetch(`/api/reports/export?${params}`);
-      if (!res.ok) throw new Error("Export failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Export failed (${res.status})`);
+      const url = URL.createObjectURL(await res.blob());
       const a = document.createElement("a");
       a.href = url;
       a.download = `sales-report.${type === "excel" ? "xlsx" : "pdf"}`;
       a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      // handled silently
+      // Revoking at once breaks downloads the browser holds for confirmation (e.g. over plain HTTP).
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
       setExporting(null);
     }
