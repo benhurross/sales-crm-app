@@ -61,11 +61,12 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/setti
   if (id === session.user.id)
     return Response.json({ error: "Cannot delete yourself" }, { status: 400 });
 
-  const [row] = await db
-    .update(schema.user)
-    .set({ banned: true, banReason: "Deactivated by admin", updatedAt: new Date() })
-    .where(eq(schema.user.id, id))
-    .returning({ id: schema.user.id });
+  // The producer and its leads stay; only the login is removed.
+  const row = await db.transaction(async (tx) => {
+    await tx.update(schema.producer).set({ userId: null }).where(eq(schema.producer.userId, id));
+    const [deleted] = await tx.delete(schema.user).where(eq(schema.user.id, id)).returning({ id: schema.user.id });
+    return deleted;
+  });
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
   return Response.json({ ok: true });

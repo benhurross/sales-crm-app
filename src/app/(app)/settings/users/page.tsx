@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
-import { Pencil, Plus, ShieldCheck, UserX } from "lucide-react";
+import { Pencil, Plus, ShieldCheck, Trash2, UserX } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -118,6 +118,21 @@ export default function UsersPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/settings/users/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings-users"] });
+      toast.success("User deleted");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   function openCreate() {
     setEditing(null);
     setDialogOpen(true);
@@ -156,7 +171,7 @@ export default function UsersPage() {
             {
               id: "actions",
               header: "",
-              size: 120,
+              size: 140,
               enableSorting: false,
               cell: ({ row }) => {
                 const u = row.original;
@@ -180,6 +195,20 @@ export default function UsersPage() {
                         {u.banned ? <ShieldCheck className="size-3.5 text-emerald-600" /> : <UserX className="size-3.5 text-destructive" />}
                       </Button>
                     )}
+                    {!isSelf && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        title="Delete"
+                        onClick={() => {
+                          if (confirm(`Permanently delete ${u.name}? Their leads and prospects are kept.`))
+                            deleteMutation.mutate(u.id);
+                        }}
+                      >
+                        <Trash2 className="size-3.5 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 );
               },
@@ -187,12 +216,12 @@ export default function UsersPage() {
           ]
         : []),
     ],
-    [isAdmin, currentUser.id, toggleBanMutation],
+    [isAdmin, currentUser.id, toggleBanMutation, deleteMutation],
   );
 
   return (
     <div className="space-y-6">
-      <PageHeader title="User Management" description="Create, edit, and deactivate user accounts">
+      <PageHeader title="User Management" description="Create, edit, deactivate and delete user accounts">
         {isAdmin && (
           <Button onClick={openCreate}>
             <Plus className="size-4" />
