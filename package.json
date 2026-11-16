@@ -20,7 +20,8 @@
     "db:seed:demo": "tsx --env-file-if-exists=.env.local scripts/seed-demo.ts",
     "admin:create": "tsx --env-file-if-exists=.env.local scripts/create-admin.ts",
     "user:password": "tsx --env-file-if-exists=.env.local scripts/set-password.ts",
-    "etl": "tsx --env-file-if-exists=.env.local scripts/etl.ts"
+    "etl": "tsx --env-file-if-exists=.env.local scripts/etl.ts",
+    "db:link": "tsx --env-file-if-exists=.env.local scripts/link-prospects.ts"
   },
   "dependencies": {
     "@emran-alhaddad/saudi-riyal-font": "^1.0.0",
