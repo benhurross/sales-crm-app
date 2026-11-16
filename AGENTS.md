@@ -37,7 +37,7 @@ An insurance brokerage system for AP Plus, built on data migrated from the legac
 ## Environment
 
 - Node v24. Scripts and the ETL run with `tsx`.
-- Next.js 16 app at the project root. Dev server on 3400 (`npm run dev`); the end-to-end server on 3500; production on 3600 (`npm start`, RHEL steps in `README.md`).
+- Next.js 16 app at the project root. Dev server on 3400 (`npm run dev`); the end-to-end server on 3500; production on 3600 through Apache, which proxies to `npm start` on 127.0.0.1:3601 (RHEL steps in `README.md`).
 - PostgreSQL 18 in this project's own Docker container on port 5435 (`npm run db:up`). Drizzle ORM, with migrations in `drizzle/`.
 - Settings are in `.env.local` (template: `.env.example`).
 - Report exports: Excel with ExcelJS, PDF printed by Chromium through `playwright-core` (`npx playwright install chromium`), both on the AP Plus letterhead in `src/server/exports/`.
