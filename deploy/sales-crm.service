@@ -1,0 +1,16 @@
+[Unit]
+Description=AP Plus Sales CRM
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=salescrm
+WorkingDirectory=/opt/sales-crm
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

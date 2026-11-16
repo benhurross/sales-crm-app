@@ -7,6 +7,8 @@ import * as schema from "./db/schema";
 
 export const auth = betterAuth({
   trustedOrigins: ["*"],
+  // Served over plain HTTP on the LAN; src/proxy.ts expects the unprefixed cookie name.
+  advanced: { useSecureCookies: false },
   database: drizzleAdapter(db, { provider: "pg", schema, usePlural: false }),
   emailAndPassword: { enabled: true, disableSignUp: true, minPasswordLength: 8 },
   plugins: [admin({ ac, roles: authRoles, defaultRole: "salesman", adminRoles: ["admin"] })],
