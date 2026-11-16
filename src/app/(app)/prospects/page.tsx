@@ -1,10 +1,10 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { ArrowRightLeft, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
 import { DataTable } from "@/components/data-table";
@@ -25,7 +25,6 @@ interface Prospect {
   lob: "General" | "Medical" | "Motor" | null;
   status: "prospect" | "converted" | "inactive";
   producerName: string | null;
-  producerCode: string | null;
   insurerName: string | null;
 }
 
@@ -40,27 +39,32 @@ export default function ProspectsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
 
-  const { data: prospects = [], isLoading } = useQuery<Prospect[]>({
-    queryKey: ["prospects"],
-    queryFn: () => fetch("/api/prospects").then((r) => r.json()),
-  });
+  const [page, setPage] = useState(0);
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([]);
+  const [query, setQuery] = useState("");
 
-  const filtered = useMemo(() => {
-    let result = prospects;
-    if (lobFilter) result = result.filter((p) => p.lob === lobFilter);
-    if (statusFilter) result = result.filter((p) => p.status === statusFilter);
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.clientName.toLowerCase().includes(q) ||
-          p.producerName?.toLowerCase().includes(q) ||
-          p.producerCode?.toLowerCase().includes(q) ||
-          p.insurerName?.toLowerCase().includes(q),
-      );
-    }
-    return result;
-  }, [prospects, lobFilter, statusFilter, search]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setQuery(search.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const params = new URLSearchParams({ page: String(page), pageSize: "25" });
+  if (query) params.set("q", query);
+  if (lobFilter) params.set("lob", lobFilter);
+  if (statusFilter) params.set("status", statusFilter);
+  if (sorting[0]) {
+    params.set("sort", sorting[0].id);
+    params.set("dir", sorting[0].desc ? "desc" : "asc");
+  }
+
+  const { data, isLoading } = useQuery<{ rows: Prospect[]; total: number }>({
+    queryKey: ["prospects", params.toString()],
+    queryFn: () => fetch(`/api/prospects?${params}`).then((r) => r.json()),
+    placeholderData: keepPreviousData,
+  });
 
   const saveMutation = useMutation({
     mutationFn: async (values: ProspectFormValues & { id?: number }) => {
@@ -207,20 +211,20 @@ export default function ProspectsPage() {
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input placeholder="Search clients..." className="h-9 w-56 pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={lobFilter} onChange={(e) => setLobFilter(e.target.value)}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={lobFilter} onChange={(e) => { setLobFilter(e.target.value); setPage(0); }}>
           <option value="">All LOB</option>
           <option value="General">General</option>
           <option value="Medical">Medical</option>
           <option value="Motor">Motor</option>
         </select>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
           <option value="">All Status</option>
           <option value="prospect">Prospect</option>
           <option value="converted">Converted</option>
           <option value="inactive">Inactive</option>
         </select>
         {(lobFilter || statusFilter || search) && (
-          <Button variant="ghost" size="sm" onClick={() => { setLobFilter(""); setStatusFilter(""); setSearch(""); }}>
+          <Button variant="ghost" size="sm" onClick={() => { setLobFilter(""); setStatusFilter(""); setSearch(""); setPage(0); }}>
             Clear filters
           </Button>
         )}
@@ -231,9 +235,8 @@ export default function ProspectsPage() {
       ) : (
         <DataTable
           columns={columns}
-          data={filtered}
-          globalFilter={search}
-          onGlobalFilterChange={setSearch}
+          data={data?.rows ?? []}
+          server={{ rowCount: data?.total ?? 0, pageIndex: page, onPageIndexChange: setPage, sorting, onSortingChange: (s) => { setSorting(s); setPage(0); } }}
         />
       )}
 

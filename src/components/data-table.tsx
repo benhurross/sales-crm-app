@@ -24,6 +24,18 @@ interface DataTableProps<TData extends Record<string, any>> {
   rowSelection?: Record<string, true>;
   onRowSelectionChange?: (value: Record<string, true>) => void;
   pageSize?: number;
+  server?: ServerSide;
+}
+
+type Sorting = { id: string; desc: boolean }[];
+
+// Paging and sorting done by the caller (the API returns one page at a time).
+export interface ServerSide {
+  rowCount: number;
+  pageIndex: number;
+  onPageIndexChange: (pageIndex: number) => void;
+  sorting: Sorting;
+  onSortingChange: (sorting: Sorting) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RowData requires Record<string,any>
@@ -36,8 +48,10 @@ export function DataTable<TData extends Record<string, any>>({
   rowSelection,
   onRowSelectionChange,
   pageSize = 25,
+  server,
 }: DataTableProps<TData>) {
-  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([]);
+  const [localSorting, setSorting] = useState<Sorting>([]);
+  const sorting = server?.sorting ?? localSorting;
   const [columnFilters, setColumnFilters] = useState<{ id: string; value: unknown }[]>([]);
   const [internalSelection, setInternalSelection] = useState<Record<string, true>>({});
 
@@ -48,7 +62,18 @@ export function DataTable<TData extends Record<string, any>>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
+    onSortingChange: server
+      ? (updater: unknown) => server.onSortingChange(typeof updater === "function" ? updater(server.sorting) : updater)
+      : setSorting,
+    manualPagination: !!server,
+    manualSorting: !!server,
+    rowCount: server?.rowCount,
+    onPaginationChange: server
+      ? (updater: unknown) => {
+          const current = { pageIndex: server.pageIndex, pageSize };
+          server.onPageIndexChange((typeof updater === "function" ? updater(current) : updater).pageIndex);
+        }
+      : undefined,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange,
     enableRowSelection,
@@ -63,6 +88,7 @@ export function DataTable<TData extends Record<string, any>>({
       columnFilters,
       globalFilter,
       rowSelection: rowSelection ?? internalSelection,
+      ...(server ? { pagination: { pageIndex: server.pageIndex, pageSize } } : {}),
     },
     initialState: { pagination: { pageIndex: 0, pageSize } },
   });
@@ -125,7 +151,7 @@ export function DataTable<TData extends Record<string, any>>({
       {pageCount > 1 && (
         <div className="flex items-center justify-between px-1 text-sm text-muted-foreground">
           <span>
-            Page {pageIndex + 1} of {pageCount} ({table.getFilteredRowModel().rows.length} rows)
+            Page {pageIndex + 1} of {pageCount} ({server?.rowCount ?? table.getFilteredRowModel().rows.length} rows)
           </span>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" className="size-8" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
