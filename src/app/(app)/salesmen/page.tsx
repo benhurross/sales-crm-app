@@ -78,7 +78,7 @@ export default function SalesmenPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/producers/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      if (!res.ok) throw new Error((await res.json()).error || "Delete failed");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["producers"] });

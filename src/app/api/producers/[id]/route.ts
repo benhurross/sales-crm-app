@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { hasRole } from "@/lib/permissions";
 import { db } from "@/server/db";
@@ -38,7 +38,19 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/produ
     return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await ctx.params;
-  const [row] = await db.delete(schema.producer).where(eq(schema.producer.id, Number(id))).returning();
+  const producerId = Number(id);
+
+  const [[{ leads }], [{ prospects }]] = await Promise.all([
+    db.select({ leads: count() }).from(schema.lead).where(eq(schema.lead.producerId, producerId)),
+    db.select({ prospects: count() }).from(schema.prospectClient).where(eq(schema.prospectClient.producerId, producerId)),
+  ]);
+  if (leads || prospects)
+    return Response.json(
+      { error: `Cannot delete: this salesman still has ${leads} leads and ${prospects} prospects. Reassign them first.` },
+      { status: 409 },
+    );
+
+  const [row] = await db.delete(schema.producer).where(eq(schema.producer.id, producerId)).returning();
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
   return Response.json({ ok: true });

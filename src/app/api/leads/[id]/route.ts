@@ -83,11 +83,14 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/leads/[i
 export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/leads/[id]">) {
   const session = await getSession(request);
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasRole(session.user.role, "manager"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await ctx.params;
-  const [row] = await db.delete(schema.lead).where(eq(schema.lead.id, Number(id))).returning();
+  const numId = Number(id);
+
+  if (!(await canAccessLead(session.user.id, session.user.role, numId)))
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+
+  const [row] = await db.delete(schema.lead).where(eq(schema.lead.id, numId)).returning();
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
 

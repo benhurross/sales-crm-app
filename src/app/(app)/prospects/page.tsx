@@ -13,7 +13,6 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatAmount } from "@/lib/format";
-import { hasRole } from "@/lib/permissions";
 import { ProspectFormDialog, type ProspectFormValues } from "./prospect-form";
 
 interface Prospect {
@@ -32,7 +31,6 @@ interface Prospect {
 
 export default function ProspectsPage() {
   const user = useCurrentUser();
-  const canManage = hasRole(user.role, "manager");
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -169,21 +167,19 @@ export default function ProspectsPage() {
             <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(row.original)}>
               <Pencil className="size-3.5" />
             </Button>
-            {canManage && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 text-destructive hover:text-destructive"
-                onClick={() => { if (confirm("Delete this prospect?")) deleteMutation.mutate(row.original.id); }}
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-destructive hover:text-destructive"
+              onClick={() => { if (confirm("Delete this prospect?")) deleteMutation.mutate(row.original.id); }}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
           </div>
         ),
       },
     ],
-    [canManage, deleteMutation, router],
+    [deleteMutation, router],
   );
 
   const editDefaults: Partial<ProspectFormValues> | undefined = editingProspect

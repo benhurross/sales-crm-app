@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { formatAmount, formatDate } from "@/lib/format";
-import { hasRole } from "@/lib/permissions";
 import { LeadFormDialog, type LeadFormValues } from "./lead-form";
 
 interface Lead {
@@ -42,7 +41,6 @@ interface Lead {
 
 export default function LeadsPage() {
   const user = useCurrentUser();
-  const canManage = hasRole(user.role, "manager");
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
@@ -233,21 +231,19 @@ export default function LeadsPage() {
             <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(row.original)}>
               <Pencil className="size-3.5" />
             </Button>
-            {canManage && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 text-destructive hover:text-destructive"
-                onClick={() => { if (confirm("Delete this lead?")) deleteMutation.mutate(row.original.id); }}
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-destructive hover:text-destructive"
+              onClick={() => { if (confirm("Delete this lead?")) deleteMutation.mutate(row.original.id); }}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
           </div>
         ),
       },
     ],
-    [canManage, deleteMutation],
+    [deleteMutation],
   );
 
   const editDefaults: Partial<LeadFormValues> | undefined = convertDefaults

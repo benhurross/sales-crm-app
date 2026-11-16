@@ -66,11 +66,14 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/prospect
 export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/prospects/[id]">) {
   const session = await getSession(request);
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasRole(session.user.role, "manager"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await ctx.params;
-  const [row] = await db.delete(schema.prospectClient).where(eq(schema.prospectClient.id, Number(id))).returning();
+  const numId = Number(id);
+
+  if (!(await canAccessProspect(session.user.id, session.user.role, numId)))
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+
+  const [row] = await db.delete(schema.prospectClient).where(eq(schema.prospectClient.id, numId)).returning();
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
   return Response.json({ ok: true });

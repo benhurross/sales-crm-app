@@ -30,16 +30,13 @@ const MAIN: NavItem[] = [
   { key: "prospects", label: "Prospects", href: "/prospects", icon: Users },
 ];
 
-const ADMIN: NavItem[] = [
-  { key: "salesmen", label: "Salesmen", href: "/salesmen", icon: UserCog },
-  { key: "settings", label: "Settings", href: "/settings", icon: Settings },
-];
+const SALESMEN: NavItem = { key: "salesmen", label: "Salesmen", href: "/salesmen", icon: UserCog };
+const SETTINGS: NavItem = { key: "settings", label: "Settings", href: "/settings", icon: Settings };
 
 export function navFor(role: string | undefined): NavGroup[] {
   const groups: NavGroup[] = [{ key: "main", label: "Main", items: MAIN }];
-  if (role === "admin" || role === "manager") {
-    groups.push({ key: "admin", label: "Administration", items: ADMIN });
-  }
+  if (role === "admin") groups.push({ key: "admin", label: "Administration", items: [SALESMEN, SETTINGS] });
+  else if (role === "manager") groups.push({ key: "admin", label: "Administration", items: [SALESMEN] });
   return groups;
 }
 
