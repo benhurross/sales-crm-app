@@ -21,7 +21,8 @@
     "admin:create": "tsx --env-file-if-exists=.env.local scripts/create-admin.ts",
     "user:password": "tsx --env-file-if-exists=.env.local scripts/set-password.ts",
     "etl": "tsx --env-file-if-exists=.env.local scripts/etl.ts",
-    "db:link": "tsx --env-file-if-exists=.env.local scripts/link-prospects.ts"
+    "db:link": "tsx --env-file-if-exists=.env.local scripts/link-prospects.ts",
+    "db:repair": "tsx --env-file-if-exists=.env.local scripts/repair-links.ts"
   },
   "dependencies": {
     "@emran-alhaddad/saudi-riyal-font": "^1.0.0",
