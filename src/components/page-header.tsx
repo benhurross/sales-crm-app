@@ -13,7 +13,7 @@ export function PageHeader({ title, description, children }: PageHeaderProps) {
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
-      {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-2 sm:shrink-0">{children}</div>}
     </div>
   );
 }

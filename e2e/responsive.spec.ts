@@ -33,7 +33,7 @@ test.describe("responsive layout", () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("text=Total Leads").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Open Pipeline", { exact: true })).toBeVisible({ timeout: 30_000 });
   });
 });
 
@@ -69,7 +69,7 @@ test.describe("accessibility", () => {
   test("dashboard has no critical a11y issues", async ({ adminPage: page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("text=Total Leads").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Open Pipeline", { exact: true })).toBeVisible({ timeout: 30_000 });
     const results = await new AxeBuilder({ page })
       .exclude(".recharts-wrapper")
       .disableRules(DISABLED_A11Y_RULES)

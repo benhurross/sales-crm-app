@@ -2,7 +2,9 @@ import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { generateExcel } from "@/server/exports/excel";
+import { generateDashboardPdf } from "@/server/exports/dashboard-pdf";
 import { generatePdf } from "@/server/exports/pdf";
+import { loadDashboardData } from "@/server/dashboard-data";
 import { buildProducerReport, summarizeReport, type ReportLead } from "@/lib/reports";
 import { getSession } from "@/server/session";
 
@@ -16,6 +18,16 @@ export async function GET(request: Request) {
   const to = url.searchParams.get("to") ?? undefined;
   const producerParam = url.searchParams.get("producer") ?? undefined;
   const statusParam = url.searchParams.get("status") ?? undefined;
+
+  if (type === "dashboard") {
+    const data = await loadDashboardData(session.user);
+    const producerId = producerParam ? Number(producerParam) : undefined;
+    const producer = data.producers.find((p) => p.id === producerId)?.name;
+    return pdfResponse(
+      () => generateDashboardPdf(data, { from, to, status: statusParam, producer, producerId }),
+      "sales-performance-report.pdf",
+    );
+  }
 
   let producerFilter: number | undefined;
   if (session.user.role === "salesman") {
@@ -61,7 +73,10 @@ export async function GET(request: Request) {
     .from(schema.producer)
     .orderBy(schema.producer.name);
 
-  const rows = buildProducerReport(leads as ReportLead[], producers);
+  const rows = buildProducerReport(
+    leads as ReportLead[],
+    producers.filter((p) => (!producerParam || p.id === Number(producerParam)) && (!producerFilter || p.id === producerFilter)),
+  );
   const summary = summarizeReport(rows);
 
   const producerName = producerParam
@@ -70,21 +85,7 @@ export async function GET(request: Request) {
 
   const filters = { from, to, producer: producerName, status: statusParam };
 
-  if (type === "pdf") {
-    let pdf: Buffer;
-    try {
-      pdf = await generatePdf(rows, summary, filters);
-    } catch (err) {
-      console.error(err);
-      return Response.json({ error: `PDF export failed: ${(err as Error).message.split("\n")[0]}` }, { status: 500 });
-    }
-    return new Response(new Uint8Array(pdf), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'attachment; filename="sales-report.pdf"',
-      },
-    });
-  }
+  if (type === "pdf") return pdfResponse(() => generatePdf(rows, summary, filters), "sales-report.pdf");
 
   const excel = await generateExcel(rows, summary, filters);
   return new Response(new Uint8Array(excel), {
@@ -93,4 +94,16 @@ export async function GET(request: Request) {
       "Content-Disposition": 'attachment; filename="sales-report.xlsx"',
     },
   });
+}
+
+async function pdfResponse(generate: () => Promise<Buffer>, filename: string) {
+  try {
+    const pdf = await generate();
+    return new Response(new Uint8Array(pdf), {
+      headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${filename}"` },
+    });
+  } catch (err) {
+    console.error(err);
+    return Response.json({ error: `PDF export failed: ${(err as Error).message.split("\n")[0]}` }, { status: 500 });
+  }
 }

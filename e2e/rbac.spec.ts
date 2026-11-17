@@ -32,10 +32,13 @@ test.describe("RBAC data isolation", () => {
     await expect(page.getByRole("cell", { name: /delta/i }).first()).toBeVisible();
   });
 
-  test("salesman cannot see admin settings links", async ({ salesmanPage: page }) => {
+  test("salesman is sent away from Settings and has no producer filter", async ({ salesmanPage: page }) => {
     await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 10_000 });
+    await expect(page).toHaveURL("/", { timeout: 10_000 });
     await expect(page.getByText("User Management")).not.toBeVisible();
+    await page.goto("/leads");
+    await expect(page.getByRole("heading", { name: "Leads" })).toBeVisible();
+    await expect(page.getByLabel("Producer")).toHaveCount(0);
     await expect(page.getByText("Insurance Companies")).not.toBeVisible();
   });
 

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { formatAmount, formatDate } from "@/lib/format";
+import { hasRole } from "@/lib/permissions";
 import { LeadFormDialog, type LeadFormValues } from "./lead-form";
 
 interface Lead {
@@ -48,6 +49,7 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [cobFilter, setCobFilter] = useState("");
   const [rfqFilter, setRfqFilter] = useState("");
+  const [producerFilter, setProducerFilter] = useState("");
   const [rowSelection, setRowSelection] = useState<Record<string, true>>({});
   const [formOpen, setFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -84,8 +86,27 @@ export default function LeadsPage() {
     if (statusFilter) result = result.filter((l) => l.status === statusFilter);
     if (cobFilter) result = result.filter((l) => l.cob === cobFilter);
     if (rfqFilter) result = result.filter((l) => l.rfqType === rfqFilter);
+    if (producerFilter) result = result.filter((l) => l.producerId === Number(producerFilter));
     return result;
-  }, [leads, statusFilter, cobFilter, rfqFilter]);
+  }, [leads, statusFilter, cobFilter, rfqFilter, producerFilter]);
+
+  const producerOptions = useMemo(
+    () =>
+      [...new Map(leads.map((l) => [l.producerId, l.producerName ?? `#${l.producerId}`])).entries()].sort((a, b) =>
+        a[1].localeCompare(b[1]),
+      ),
+    [leads],
+  );
+  const showProducerFilter = hasRole(user.role, "manager");
+
+  // Selection keys are positions in `filtered`, so a filter change must clear them.
+  function changeFilter(set: (value: string) => void) {
+    return (value: string) => {
+      set(value);
+      setRowSelection({});
+    };
+  }
+  const hasFilters = statusFilter || cobFilter || rfqFilter || producerFilter || search;
 
   const saveMutation = useMutation({
     mutationFn: async (values: LeadFormValues & { id?: number }) => {
@@ -284,25 +305,33 @@ export default function LeadsPage() {
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input placeholder="Search prospects..." className="h-9 w-56 pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        {showProducerFilter && (
+          <select aria-label="Producer" className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={producerFilter} onChange={(e) => changeFilter(setProducerFilter)(e.target.value)}>
+            <option value="">All Producers</option>
+            {producerOptions.map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
+        )}
+        <select aria-label="Status" className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => changeFilter(setStatusFilter)(e.target.value)}>
           <option value="">All Status</option>
           <option value="Secured">Secured</option>
           <option value="Pending">Pending</option>
           <option value="Lost">Lost</option>
         </select>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={cobFilter} onChange={(e) => setCobFilter(e.target.value)}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={cobFilter} onChange={(e) => changeFilter(setCobFilter)(e.target.value)} aria-label="Class of business">
           <option value="">All COB</option>
           <option value="General">General</option>
           <option value="Medical">Medical</option>
           <option value="Motor">Motor</option>
         </select>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={rfqFilter} onChange={(e) => setRfqFilter(e.target.value)}>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={rfqFilter} onChange={(e) => changeFilter(setRfqFilter)(e.target.value)} aria-label="RFQ type">
           <option value="">All RFQ</option>
           <option value="New">New</option>
           <option value="Renewal">Renewal</option>
         </select>
-        {(statusFilter || cobFilter || rfqFilter) && (
-          <Button variant="ghost" size="sm" onClick={() => { setStatusFilter(""); setCobFilter(""); setRfqFilter(""); }}>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={() => { setStatusFilter(""); setCobFilter(""); setRfqFilter(""); setProducerFilter(""); setSearch(""); setRowSelection({}); }}>
             Clear filters
           </Button>
         )}

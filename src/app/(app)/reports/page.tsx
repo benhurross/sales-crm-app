@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
-import { Calendar, FileSpreadsheet, FileText, Search } from "lucide-react";
+import { Calendar, FileBarChart, FileSpreadsheet, FileText, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
@@ -25,6 +25,13 @@ interface ApiProducer {
   annualTarget: string;
 }
 
+type ExportType = "excel" | "pdf" | "dashboard";
+const EXPORT_FILES: Record<ExportType, string> = {
+  excel: "sales-report.xlsx",
+  pdf: "sales-report.pdf",
+  dashboard: "sales-performance-report.pdf",
+};
+
 export default function ReportsPage() {
   const user = useCurrentUser();
   const isSalesman = !hasRole(user.role, "manager");
@@ -34,7 +41,7 @@ export default function ReportsPage() {
   const [producerFilter, setProducerFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
+  const [exporting, setExporting] = useState<ExportType | null>(null);
 
   const { data, isLoading } = useQuery<{ leads: ApiLead[]; producers: ApiProducer[] }>({
     queryKey: ["reports"],
@@ -54,8 +61,8 @@ export default function ReportsPage() {
   }, [leads, dateFrom, dateTo, producerFilter, statusFilter]);
 
   const rows = useMemo(
-    () => buildProducerReport(filteredLeads, producers),
-    [filteredLeads, producers],
+    () => buildProducerReport(filteredLeads, producerFilter ? producers.filter((p) => p.id === Number(producerFilter)) : producers),
+    [filteredLeads, producers, producerFilter],
   );
 
   const filteredRows = useMemo(() => {
@@ -68,7 +75,7 @@ export default function ReportsPage() {
 
   const hasFilters = dateFrom || dateTo || producerFilter || statusFilter || search;
 
-  async function handleExport(type: "excel" | "pdf") {
+  async function handleExport(type: ExportType) {
     setExporting(type);
     try {
       const params = new URLSearchParams({ type });
@@ -81,7 +88,7 @@ export default function ReportsPage() {
       const url = URL.createObjectURL(await res.blob());
       const a = document.createElement("a");
       a.href = url;
-      a.download = `sales-report.${type === "excel" ? "xlsx" : "pdf"}`;
+      a.download = EXPORT_FILES[type];
       a.click();
       // Revoking at once breaks downloads the browser holds for confirmation (e.g. over plain HTTP).
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -189,7 +196,7 @@ export default function ReportsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Sales Report" description="Monthly producer activity and performance">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -207,6 +214,15 @@ export default function ReportsPage() {
           >
             <FileText className="size-4" />
             {exporting === "pdf" ? "Exporting..." : "PDF"}
+          </Button>
+          <Button
+            size="sm"
+            disabled={exporting !== null}
+            onClick={() => handleExport("dashboard")}
+            title="Portrait PDF with KPIs, charts and the producer leaderboard"
+          >
+            <FileBarChart className="size-4" />
+            {exporting === "dashboard" ? "Exporting..." : "Performance Report"}
           </Button>
         </div>
       </PageHeader>

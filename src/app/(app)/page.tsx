@@ -22,13 +22,18 @@ import { Progress } from "@/components/ui/progress";
 import { formatAmount, formatCompact, formatPercent, RIYAL } from "@/lib/format";
 import {
   computeKpis,
+  monthlyVolume,
   monthOf,
+  paceStatus,
   pipelineAging,
+  producerLeaderboard,
+  STATUS_COLORS,
   statusBreakdown,
+  TONE_COLORS,
+  yearElapsed,
   type DashboardLead,
 } from "@/lib/dashboard";
 
-const STATUS_COLORS = { Secured: "#10b981", Pending: "#f59e0b", Lost: "#ef4444" };
 const AXIS_TICK = { fontSize: 11, fill: "var(--muted-foreground)" };
 const GRID = { stroke: "var(--border)", strokeOpacity: 0.6 };
 const CURSOR = { fill: "var(--accent)", opacity: 0.35 };
@@ -90,14 +95,9 @@ export default function DashboardPage() {
     [data, producerFilter],
   );
   const targetAchievement = annualTarget > 0 ? kpis.securedPremium / annualTarget : 0;
-  const [yearPace] = useState(() => {
-    const now = new Date();
-    return (now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (365.25 * 86_400_000);
-  });
-  const paceStatus =
-    targetAchievement >= yearPace ? "On pace" : targetAchievement >= yearPace / 2 ? "Behind pace" : "Well behind pace";
-  const paceColor =
-    targetAchievement >= yearPace ? STATUS_COLORS.Secured : targetAchievement >= yearPace / 2 ? STATUS_COLORS.Pending : STATUS_COLORS.Lost;
+  const [today] = useState(() => new Date());
+  const yearPace = yearElapsed(today);
+  const pace = paceStatus(targetAchievement, yearPace);
 
   const funnel = [
     { name: "Prospects", count: prospects.total },
@@ -109,33 +109,12 @@ export default function DashboardPage() {
 
   const monthlyStatus = useMemo(() => statusBreakdown(filtered, monthOf), [filtered]);
   const cobStatus = useMemo(() => statusBreakdown(filtered, (l) => l.cob), [filtered]);
-  const [today] = useState(() => new Date());
   const aging = useMemo(() => pipelineAging(filtered, today), [filtered, today]);
-  const monthlyVolume = useMemo(() => {
-    const map = new Map<string, { name: string; New: number; Renewal: number }>();
-    for (const l of filtered) {
-      const key = monthOf(l);
-      const entry = map.get(key) ?? { name: key, New: 0, Renewal: 0 };
-      entry[l.rfqType]++;
-      map.set(key, entry);
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [filtered]);
-
-  const leaderboard = useMemo(() => {
-    if (!data) return [];
-    const byProducer = new Map<number, DashboardLead[]>();
-    for (const l of filtered) byProducer.set(l.producerId, [...(byProducer.get(l.producerId) ?? []), l]);
-    return data.producers
-      .filter((p) => !producerFilter || p.id === Number(producerFilter))
-      .map((p) => {
-        const k = computeKpis(byProducer.get(p.id) ?? []);
-        const target = Number(p.annualTarget);
-        return { id: p.id, name: p.name, leads: k.totalLeads, winRate: k.winRate, closed: k.secured + k.lost, secured: k.securedPremium, pipeline: k.pendingPremium, target, achievement: target > 0 ? k.securedPremium / target : 0 };
-      })
-      .filter((p) => p.leads > 0 || p.target > 0)
-      .sort((a, b) => b.secured - a.secured || b.leads - a.leads);
-  }, [data, filtered, producerFilter]);
+  const volume = useMemo(() => monthlyVolume(filtered), [filtered]);
+  const leaderboard = useMemo(
+    () => producerLeaderboard(filtered, (data?.producers ?? []).filter((p) => !producerFilter || p.id === Number(producerFilter))),
+    [data, filtered, producerFilter],
+  );
 
   if (isLoading) {
     return (
@@ -215,11 +194,11 @@ export default function DashboardPage() {
         <ChartCard title="Target Achievement" subtitle={`Secured premium vs ${formatCompact(annualTarget)} annual target`}>
           <Gauge
             value={targetAchievement}
-            color={paceColor}
+            color={TONE_COLORS[pace.tone]}
             marker={yearPace}
             markerLabel="Year-to-date pace"
             caption={`${formatCompact(kpis.securedPremium)} secured`}
-            status={`${paceStatus} (pace ${formatPercent(yearPace)})`}
+            status={`${pace.label} (pace ${formatPercent(yearPace)})`}
           />
         </ChartCard>
         <ChartCard title="Win Rate" subtitle="Secured out of closed leads">
@@ -251,7 +230,7 @@ export default function DashboardPage() {
         </ChartCard>
         <ChartCard title="Monthly Lead Volume" subtitle="New business vs renewals">
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={monthlyVolume}>
+            <LineChart data={volume}>
               <CartesianGrid vertical={false} {...GRID} />
               <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={monthLabel} />
               <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} width={32} />

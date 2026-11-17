@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   computeKpis,
+  monthlyVolume,
   monthOf,
+  paceStatus,
+  producerLeaderboard,
+  yearElapsed,
   pipelineAging,
   statusBreakdown,
   type DashboardLead,
@@ -139,5 +143,52 @@ describe("pipelineAging", () => {
     );
     expect(rows.map((r) => r.count)).toEqual([1, 1, 1, 1]);
     expect(rows.map((r) => r.value)).toEqual([10, 20, 30, 40]);
+  });
+});
+
+describe("monthlyVolume", () => {
+  it("counts new and renewal leads per month", () => {
+    expect(
+      monthlyVolume([
+        lead({ startWorkingDate: "2025-02-01", rfqType: "Renewal" }),
+        lead({ startWorkingDate: "2025-01-05" }),
+        lead({ startWorkingDate: "2025-02-09" }),
+      ]),
+    ).toEqual([
+      { name: "2025-01", New: 1, Renewal: 0 },
+      { name: "2025-02", New: 1, Renewal: 1 },
+    ]);
+  });
+});
+
+describe("producerLeaderboard", () => {
+  it("ranks by secured premium and drops producers with no leads and no target", () => {
+    const rows = producerLeaderboard(
+      [
+        lead({ producerId: 1, status: "Secured", estimatedPremium: "100" }),
+        lead({ producerId: 1, status: "Lost" }),
+        lead({ producerId: 2, status: "Secured", estimatedPremium: "500" }),
+        lead({ producerId: 2, status: "Pending", estimatedPremium: "70" }),
+      ],
+      [
+        { id: 1, name: "A", annualTarget: "1000" },
+        { id: 2, name: "B", annualTarget: "0" },
+        { id: 3, name: "C", annualTarget: "0" },
+        { id: 4, name: "D", annualTarget: "50" },
+      ],
+    );
+    expect(rows.map((r) => r.name)).toEqual(["B", "A", "D"]);
+    expect(rows[0]).toMatchObject({ leads: 2, closed: 1, winRate: 1, pipeline: 70, achievement: 0 });
+    expect(rows[1]).toMatchObject({ winRate: 0.5, achievement: 0.1 });
+  });
+});
+
+describe("paceStatus and yearElapsed", () => {
+  it("compares achievement with the share of the year gone", () => {
+    expect(yearElapsed(new Date(2026, 0, 1))).toBe(0);
+    expect(yearElapsed(new Date(2026, 6, 2, 12))).toBeCloseTo(0.5, 2);
+    expect(paceStatus(0.6, 0.5)).toEqual({ label: "On pace", tone: "good" });
+    expect(paceStatus(0.3, 0.5).tone).toBe("warning");
+    expect(paceStatus(0.1, 0.5).tone).toBe("critical");
   });
 });

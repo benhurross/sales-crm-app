@@ -12,7 +12,7 @@
  */
 :root {
   color-scheme: light;
-  --app-font: var(--font-plex), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
+  --app-font: var(--font-riyal), var(--font-plex), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
 
   --background: #f7faff;
   --foreground: #1e2022;

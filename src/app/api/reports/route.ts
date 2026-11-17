@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     ? await leadsQuery.where(eq(schema.lead.producerId, producerFilter))
     : await leadsQuery;
 
-  const producers = await db
+  const producersQuery = db
     .select({
       id: schema.producer.id,
       code: schema.producer.code,
@@ -44,6 +44,9 @@ export async function GET(request: Request) {
     })
     .from(schema.producer)
     .orderBy(schema.producer.name);
+  const producers = producerFilter
+    ? await producersQuery.where(eq(schema.producer.id, producerFilter))
+    : await producersQuery;
 
   return Response.json({ leads, producers });
 }

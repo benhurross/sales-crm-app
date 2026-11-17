@@ -54,6 +54,17 @@ export function DataTable<TData extends Record<string, any>>({
   const sorting = server?.sorting ?? localSorting;
   const [columnFilters, setColumnFilters] = useState<{ id: string; value: unknown }[]>([]);
   const [internalSelection, setInternalSelection] = useState<Record<string, true>>({});
+  const [localPage, setLocalPage] = useState(0);
+
+  // Back to the first page when the search or the row set changes.
+  const [resetKey, setResetKey] = useState({ globalFilter, rows: data.length });
+  if (resetKey.globalFilter !== globalFilter || resetKey.rows !== data.length) {
+    setResetKey({ globalFilter, rows: data.length });
+    setLocalPage(0);
+  }
+
+  const pageIndex = server?.pageIndex ?? localPage;
+  const setPageIndex = server?.onPageIndexChange ?? setLocalPage;
 
   const table = useLegacyTable({
     data,
@@ -68,12 +79,11 @@ export function DataTable<TData extends Record<string, any>>({
     manualPagination: !!server,
     manualSorting: !!server,
     rowCount: server?.rowCount,
-    onPaginationChange: server
-      ? (updater: unknown) => {
-          const current = { pageIndex: server.pageIndex, pageSize };
-          server.onPageIndexChange((typeof updater === "function" ? updater(current) : updater).pageIndex);
-        }
-      : undefined,
+    autoResetPageIndex: false,
+    onPaginationChange: (updater: unknown) => {
+      const current = { pageIndex, pageSize };
+      setPageIndex((typeof updater === "function" ? updater(current) : updater).pageIndex);
+    },
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange,
     enableRowSelection,
@@ -88,13 +98,10 @@ export function DataTable<TData extends Record<string, any>>({
       columnFilters,
       globalFilter,
       rowSelection: rowSelection ?? internalSelection,
-      ...(server ? { pagination: { pageIndex: server.pageIndex, pageSize } } : {}),
+      pagination: { pageIndex, pageSize },
     },
-    initialState: { pagination: { pageIndex: 0, pageSize } },
   });
 
-  const state = table.getState();
-  const pageIndex = state.pagination.pageIndex;
   const pageCount = table.getPageCount();
 
   return (
@@ -154,10 +161,10 @@ export function DataTable<TData extends Record<string, any>>({
             Page {pageIndex + 1} of {pageCount} ({server?.rowCount ?? table.getFilteredRowModel().rows.length} rows)
           </span>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="size-8" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
+            <Button variant="outline" size="icon" className="size-8" aria-label="Previous page" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
               <ChevronLeft className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" className="size-8" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
+            <Button variant="outline" size="icon" className="size-8" aria-label="Next page" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
               <ChevronRight className="size-4" />
             </Button>
           </div>

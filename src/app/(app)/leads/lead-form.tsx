@@ -257,6 +257,8 @@ function ProspectAutocomplete({
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
         <Input
+          id="prospectName"
+          autoComplete="off"
           placeholder="Search or type prospect name..."
           className="pl-8"
           value={value}
