@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { Calendar, FileBarChart, FileSpreadsheet, FileText, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
@@ -35,6 +36,9 @@ const EXPORT_FILES: Record<ExportType, string> = {
 export default function ReportsPage() {
   const user = useCurrentUser();
   const isSalesman = !hasRole(user.role, "manager");
+  const t = useTranslations("reports");
+  const tc = useTranslations("common");
+  const ts = useTranslations("status");
 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -84,7 +88,7 @@ export default function ReportsPage() {
       if (producerFilter) params.set("producer", producerFilter);
       if (statusFilter) params.set("status", statusFilter);
       const res = await fetch(`/api/reports/export?${params}`);
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Export failed (${res.status})`);
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? t("exportFailed", { status: res.status }));
       const url = URL.createObjectURL(await res.blob());
       const a = document.createElement("a");
       a.href = url;
@@ -101,22 +105,22 @@ export default function ReportsPage() {
 
   const columns = useMemo<LegacyColumnDef<ProducerReportRow, unknown>[]>(
     () => [
-      { accessorKey: "name", header: "Producer", size: 160 },
+      { accessorKey: "name", header: t("colProducer"), size: 160 },
       {
         accessorKey: "totalLeads",
-        header: "Leads",
+        header: t("colLeads"),
         size: 70,
         cell: ({ getValue }) => (getValue() as number).toLocaleString(),
       },
       {
         accessorKey: "borCount",
-        header: "BOR",
+        header: t("colBor"),
         size: 60,
         cell: ({ getValue }) => (getValue() as number).toLocaleString(),
       },
       {
         accessorKey: "securedCount",
-        header: "Secured",
+        header: ts("Secured"),
         size: 80,
         cell: ({ getValue }) => (
           <span className="text-emerald-600 dark:text-emerald-400">
@@ -126,7 +130,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "pendingCount",
-        header: "Pending",
+        header: ts("Pending"),
         size: 80,
         cell: ({ getValue }) => (
           <span className="text-amber-600 dark:text-amber-400">
@@ -136,7 +140,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "lostCount",
-        header: "Lost",
+        header: ts("Lost"),
         size: 60,
         cell: ({ getValue }) => (
           <span className="text-red-600 dark:text-red-400">
@@ -146,7 +150,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "securedPremium",
-        header: "Secured Premium",
+        header: t("colSecuredPremium"),
         size: 140,
         cell: ({ getValue }) => formatAmount(getValue() as number),
         sortingFn: (a: { original: ProducerReportRow }, b: { original: ProducerReportRow }) =>
@@ -154,7 +158,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "totalPremium",
-        header: "Total Premium",
+        header: t("colTotalPremium"),
         size: 140,
         cell: ({ getValue }) => formatAmount(getValue() as number),
         sortingFn: (a: { original: ProducerReportRow }, b: { original: ProducerReportRow }) =>
@@ -162,7 +166,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "annualTarget",
-        header: "Target",
+        header: t("colTarget"),
         size: 130,
         cell: ({ getValue }) => formatAmount(getValue() as number),
         sortingFn: (a: { original: ProducerReportRow }, b: { original: ProducerReportRow }) =>
@@ -170,7 +174,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "achievementPct",
-        header: "Achievement",
+        header: t("colAchievement"),
         size: 120,
         cell: ({ getValue }) => {
           const pct = getValue() as number;
@@ -195,7 +199,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Sales Report" description="Monthly producer activity and performance">
+      <PageHeader title={t("title")} description={t("description")}>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -204,7 +208,7 @@ export default function ReportsPage() {
             onClick={() => handleExport("excel")}
           >
             <FileSpreadsheet className="size-4" />
-            {exporting === "excel" ? "Exporting..." : "Excel"}
+            {exporting === "excel" ? t("exporting") : "Excel"}
           </Button>
           <Button
             variant="outline"
@@ -213,26 +217,26 @@ export default function ReportsPage() {
             onClick={() => handleExport("pdf")}
           >
             <FileText className="size-4" />
-            {exporting === "pdf" ? "Exporting..." : "PDF"}
+            {exporting === "pdf" ? t("exporting") : "PDF"}
           </Button>
           <Button
             size="sm"
             disabled={exporting !== null}
             onClick={() => handleExport("dashboard")}
-            title="Portrait PDF with KPIs, charts and the producer leaderboard"
+            title={t("performanceHint")}
           >
             <FileBarChart className="size-4" />
-            {exporting === "dashboard" ? "Exporting..." : "Performance Report"}
+            {exporting === "dashboard" ? t("exporting") : t("performanceReport")}
           </Button>
         </div>
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Search className="absolute start-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
-            placeholder="Search producers..."
-            className="h-9 w-48 pl-8"
+            placeholder={t("search")}
+            className="h-9 w-48 ps-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -243,8 +247,9 @@ export default function ReportsPage() {
             className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm"
             value={producerFilter}
             onChange={(e) => setProducerFilter(e.target.value)}
+            aria-label={t("colProducer")}
           >
-            <option value="">All Producers</option>
+            <option value="">{tc("allProducers")}</option>
             {producers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -257,11 +262,12 @@ export default function ReportsPage() {
           className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label={t("status")}
         >
-          <option value="">All Statuses</option>
-          <option value="Secured">Secured</option>
-          <option value="Pending">Pending</option>
-          <option value="Lost">Lost</option>
+          <option value="">{t("allStatuses")}</option>
+          <option value="Secured">{ts("Secured")}</option>
+          <option value="Pending">{ts("Pending")}</option>
+          <option value="Lost">{ts("Lost")}</option>
         </select>
 
         <div className="flex items-center gap-1.5">
@@ -272,7 +278,7 @@ export default function ReportsPage() {
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
           />
-          <span className="text-sm text-muted-foreground">to</span>
+          <span className="text-sm text-muted-foreground">{t("to")}</span>
           <Input
             type="date"
             className="h-9 w-36"
@@ -293,14 +299,14 @@ export default function ReportsPage() {
               setSearch("");
             }}
           >
-            Clear filters
+            {tc("clearFilters")}
           </Button>
         )}
       </div>
 
       {isLoading ? (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">
-          Loading...
+          {tc("loading")}
         </div>
       ) : (
         <>
@@ -308,14 +314,14 @@ export default function ReportsPage() {
 
           <div className="rounded-xl border bg-card p-4 shadow-glass glass-sheen">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-              <SummaryItem label="Total Leads" value={summary.totalLeads.toLocaleString()} />
-              <SummaryItem label="BOR" value={summary.totalBor.toLocaleString()} />
-              <SummaryItem label="Secured" value={summary.totalSecured.toLocaleString()} className="text-emerald-600 dark:text-emerald-400" />
-              <SummaryItem label="Pending" value={summary.totalPending.toLocaleString()} className="text-amber-600 dark:text-amber-400" />
-              <SummaryItem label="Lost" value={summary.totalLost.toLocaleString()} className="text-red-600 dark:text-red-400" />
-              <SummaryItem label="Secured Premium" value={formatAmount(summary.securedPremium)} />
-              <SummaryItem label="Total Premium" value={formatAmount(summary.totalPremium)} />
-              <SummaryItem label="Success Rate" value={`${(summary.successRate * 100).toFixed(1)}%`} />
+              <SummaryItem label={t("totalLeads")} value={summary.totalLeads.toLocaleString()} />
+              <SummaryItem label={t("colBor")} value={summary.totalBor.toLocaleString()} />
+              <SummaryItem label={ts("Secured")} value={summary.totalSecured.toLocaleString()} className="text-emerald-600 dark:text-emerald-400" />
+              <SummaryItem label={ts("Pending")} value={summary.totalPending.toLocaleString()} className="text-amber-600 dark:text-amber-400" />
+              <SummaryItem label={ts("Lost")} value={summary.totalLost.toLocaleString()} className="text-red-600 dark:text-red-400" />
+              <SummaryItem label={t("colSecuredPremium")} value={formatAmount(summary.securedPremium)} />
+              <SummaryItem label={t("colTotalPremium")} value={formatAmount(summary.totalPremium)} />
+              <SummaryItem label={t("successRate")} value={`${(summary.successRate * 100).toFixed(1)}%`} />
             </div>
           </div>
         </>

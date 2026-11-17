@@ -2,21 +2,20 @@
 
 import { Building2, Users } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCurrentUser } from "@/components/app-shell/current-user";
 import { PageHeader } from "@/components/page-header";
 import { hasRole } from "@/lib/permissions";
 
 const cards = [
   {
-    title: "User Management",
-    description: "Create, edit, and deactivate user accounts",
+    key: "users",
     icon: Users,
     href: "/settings/users",
     adminOnly: true,
   },
   {
-    title: "Insurance Companies",
-    description: "Manage the list of insurance companies",
+    key: "insurers",
     icon: Building2,
     href: "/settings/insurers",
     adminOnly: true,
@@ -26,12 +25,13 @@ const cards = [
 export default function SettingsPage() {
   const user = useCurrentUser();
   const isAdmin = hasRole(user.role, "admin");
+  const t = useTranslations("settings");
 
   const visible = cards.filter((c) => !c.adminOnly || isAdmin);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" description="System configuration and account management" />
+      <PageHeader title={t("title")} description={t("description")} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((card) => (
           <Link
@@ -44,8 +44,8 @@ export default function SettingsPage() {
                 <card.icon className="size-5" />
               </div>
               <div>
-                <h3 className="font-medium group-hover:text-primary">{card.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{card.description}</p>
+                <h3 className="font-medium group-hover:text-primary">{t(`${card.key}Title`)}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t(`${card.key}Description`)}</p>
               </div>
             </div>
           </Link>

@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { ArrowRightLeft, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
@@ -32,6 +33,10 @@ export default function ProspectsPage() {
   const user = useCurrentUser();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const t = useTranslations("prospects");
+  const tc = useTranslations("common");
+  const tCob = useTranslations("cob");
+  const ts = useTranslations("status");
 
   const [search, setSearch] = useState("");
   const [lobFilter, setLobFilter] = useState("");
@@ -80,12 +85,12 @@ export default function ProspectsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error((await res.json()).error || "Failed");
+      if (!res.ok) throw new Error((await res.json()).error || tc("failed"));
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-      toast.success(editingProspect ? "Prospect updated" : "Prospect created");
+      toast.success(editingProspect ? t("updated") : t("created"));
       closeForm();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -94,11 +99,11 @@ export default function ProspectsPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/prospects/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      if (!res.ok) throw new Error(tc("deleteFailed"));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-      toast.success("Prospect deleted");
+      toast.success(t("deleted"));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -118,16 +123,16 @@ export default function ProspectsPage() {
 
   const columns = useMemo<LegacyColumnDef<Prospect, unknown>[]>(
     () => [
-      { accessorKey: "clientName", header: "Client Name" },
+      { accessorKey: "clientName", header: t("colClient") },
       {
         id: "producer",
-        header: "Producer",
+        header: t("colProducer"),
         accessorFn: (row) => row.producerName,
         size: 160,
       },
       {
         accessorKey: "premiums",
-        header: "Premiums",
+        header: t("colPremiums"),
         size: 130,
         cell: ({ getValue }) => {
           const v = getValue() as string | null;
@@ -136,17 +141,17 @@ export default function ProspectsPage() {
         sortingFn: (a: { original: Prospect }, b: { original: Prospect }) =>
           Number(a.original.premiums ?? 0) - Number(b.original.premiums ?? 0),
       },
-      { accessorKey: "month", header: "Month", size: 100, cell: ({ getValue }) => getValue() || "--" },
-      { accessorKey: "lob", header: "LOB", size: 90, cell: ({ getValue }) => getValue() || "--" },
+      { accessorKey: "month", header: t("colMonth"), size: 100, cell: ({ getValue }) => getValue() || "--" },
+      { accessorKey: "lob", header: t("colLob"), size: 90, cell: ({ getValue }) => (getValue() ? tCob(getValue() as string) : "--") },
       {
         accessorKey: "insurerName",
-        header: "Current Insurer",
+        header: t("colInsurer"),
         size: 140,
         cell: ({ getValue }) => getValue() || "--",
       },
       {
         accessorKey: "status",
-        header: "Status",
+        header: t("colStatus"),
         size: 110,
         cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
       },
@@ -162,20 +167,23 @@ export default function ProspectsPage() {
                 variant="ghost"
                 size="icon"
                 className="size-7 text-primary hover:text-primary"
-                title="Convert to Lead"
+                title={t("convert")}
+                aria-label={t("convert")}
                 onClick={() => router.push(`/leads?convertProspect=${row.original.id}`)}
               >
                 <ArrowRightLeft className="size-3.5" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(row.original)}>
+            <Button variant="ghost" size="icon" className="size-7" title={tc("edit")} aria-label={tc("edit")} onClick={() => openEdit(row.original)}>
               <Pencil className="size-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="size-7 text-destructive hover:text-destructive"
-              onClick={() => { if (confirm("Delete this prospect?")) deleteMutation.mutate(row.original.id); }}
+              title={tc("delete")}
+              aria-label={tc("delete")}
+              onClick={() => { if (confirm(t("confirmDelete"))) deleteMutation.mutate(row.original.id); }}
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -183,7 +191,7 @@ export default function ProspectsPage() {
         ),
       },
     ],
-    [deleteMutation, router],
+    [deleteMutation, router, t, tc, tCob],
   );
 
   const editDefaults: Partial<ProspectFormValues> | undefined = editingProspect
@@ -199,39 +207,39 @@ export default function ProspectsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Prospects" description="Client pipeline tracking">
+      <PageHeader title={t("title")} description={t("description")}>
         <Button onClick={openCreate}>
           <Plus className="size-4" />
-          Add Prospect
+          {t("add")}
         </Button>
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input placeholder="Search clients..." className="h-9 w-56 pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Search className="absolute start-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input placeholder={t("search")} className="h-9 w-56 ps-8" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={lobFilter} onChange={(e) => { setLobFilter(e.target.value); setPage(0); }}>
-          <option value="">All LOB</option>
-          <option value="General">General</option>
-          <option value="Medical">Medical</option>
-          <option value="Motor">Motor</option>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={lobFilter} onChange={(e) => { setLobFilter(e.target.value); setPage(0); }} aria-label={t("colLob")}>
+          <option value="">{t("allLob")}</option>
+          <option value="General">{tCob("General")}</option>
+          <option value="Medical">{tCob("Medical")}</option>
+          <option value="Motor">{tCob("Motor")}</option>
         </select>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
-          <option value="">All Status</option>
-          <option value="prospect">Prospect</option>
-          <option value="converted">Converted</option>
-          <option value="inactive">Inactive</option>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} aria-label={t("colStatus")}>
+          <option value="">{t("allStatus")}</option>
+          <option value="prospect">{ts("prospect")}</option>
+          <option value="converted">{ts("converted")}</option>
+          <option value="inactive">{ts("inactive")}</option>
         </select>
         {(lobFilter || statusFilter || search) && (
           <Button variant="ghost" size="sm" onClick={() => { setLobFilter(""); setStatusFilter(""); setSearch(""); setPage(0); }}>
-            Clear filters
+            {tc("clearFilters")}
           </Button>
         )}
       </div>
 
       {isLoading ? (
-        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">Loading...</div>
+        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">{tc("loading")}</div>
       ) : (
         <DataTable
           columns={columns}
@@ -248,7 +256,7 @@ export default function ProspectsPage() {
           saveMutation.mutate(editingProspect ? { ...values, id: editingProspect.id } : values)
         }
         isPending={saveMutation.isPending}
-        title={editingProspect ? "Edit Prospect" : "New Prospect"}
+        title={editingProspect ? t("editTitle") : t("newTitle")}
         userRole={user.role}
       />
     </div>

@@ -2,9 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { KeyRound, LogOut, Volume2, VolumeX } from "lucide-react";
+import { KeyRound, Languages, LogOut, Volume2, VolumeX } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -21,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { setSoundEnabled, soundEnabled } from "@/components/celebration/sound";
+import { setLocale } from "@/i18n/actions";
 import { authClient } from "@/lib/auth-client";
 import { useCurrentUser } from "./current-user";
 
@@ -32,18 +34,20 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Administrator",
-  manager: "Manager",
-  salesman: "Salesman",
-};
-
 export function UserMenu() {
   const user = useCurrentUser();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [changingPassword, setChangingPassword] = useState(false);
   const [sound, setSound] = useState(soundEnabled);
+  const t = useTranslations("user");
+  const locale = useLocale();
+  const [, startTransition] = useTransition();
+  const switchLanguage = () =>
+    startTransition(async () => {
+      await setLocale(locale === "ar" ? "en" : "ar");
+      router.refresh();
+    });
 
   const signOut = async () => {
     await authClient.signOut();
@@ -65,12 +69,12 @@ export function UserMenu() {
           <DropdownMenuLabel className="space-y-0.5">
             <div className="truncate text-sm font-medium">{user.name}</div>
             <div className="truncate text-xs font-normal text-muted-foreground">{user.email}</div>
-            <div className="text-xs font-normal text-muted-foreground">{(user.role && ROLE_LABELS[user.role]) ?? user.role}</div>
+            <div className="text-xs font-normal text-muted-foreground">{user.role ? t(`roles.${user.role}`) : null}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setChangingPassword(true)}>
             <KeyRound />
-            Change password
+            {t("changePassword")}
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => {
@@ -80,11 +84,15 @@ export function UserMenu() {
             }}
           >
             {sound ? <Volume2 /> : <VolumeX />}
-            Celebration sound: {sound ? "On" : "Off"}
+            {sound ? t("soundOn") : t("soundOff")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={switchLanguage}>
+            <Languages />
+            {locale === "ar" ? "English" : "العربية"}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={signOut}>
             <LogOut />
-            Sign out
+            {t("signOut")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -94,14 +102,16 @@ export function UserMenu() {
 }
 
 function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const t = useTranslations("user");
+  const tc = useTranslations("common");
   const schema = z
     .object({
-      currentPassword: z.string().min(1, "Required"),
-      newPassword: z.string().min(8, "Password must be at least 8 characters"),
-      confirmPassword: z.string().min(1, "Required"),
+      currentPassword: z.string().min(1, tc("required")),
+      newPassword: z.string().min(8, t("passwordTooShort")),
+      confirmPassword: z.string().min(1, tc("required")),
     })
     .refine((d) => d.newPassword === d.confirmPassword, {
-      message: "Passwords do not match",
+      message: t("passwordsDoNotMatch"),
       path: ["confirmPassword"],
     });
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" } });
@@ -109,10 +119,10 @@ function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const submit = form.handleSubmit(async (values) => {
     const { error } = await authClient.changePassword({ currentPassword: values.currentPassword, newPassword: values.newPassword, revokeOtherSessions: true });
     if (error) {
-      form.setError("currentPassword", { message: "Current password is incorrect" });
+      form.setError("currentPassword", { message: t("currentPasswordWrong") });
       return;
     }
-    toast.success("Password changed successfully");
+    toast.success(t("passwordChanged"));
     form.reset();
     onOpenChange(false);
   });
@@ -121,25 +131,25 @@ function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Change password</DialogTitle>
+          <DialogTitle>{t("changePassword")}</DialogTitle>
         </DialogHeader>
         <form id="change-password" onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="current-password">Current password</Label>
+            <Label htmlFor="current-password">{t("currentPassword")}</Label>
             <Input id="current-password" type="password" autoComplete="current-password" {...form.register("currentPassword")} />
             {form.formState.errors.currentPassword && (
               <p className="text-sm text-destructive">{form.formState.errors.currentPassword.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="new-password">New password</Label>
+            <Label htmlFor="new-password">{t("newPassword")}</Label>
             <Input id="new-password" type="password" autoComplete="new-password" {...form.register("newPassword")} />
             {form.formState.errors.newPassword && (
               <p className="text-sm text-destructive">{form.formState.errors.newPassword.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirm new password</Label>
+            <Label htmlFor="confirm-password">{t("confirmPassword")}</Label>
             <Input id="confirm-password" type="password" autoComplete="new-password" {...form.register("confirmPassword")} />
             {form.formState.errors.confirmPassword && (
               <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
@@ -148,10 +158,10 @@ function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         </form>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button type="submit" form="change-password" disabled={form.formState.isSubmitting}>
-            Save
+            {tc("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

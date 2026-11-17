@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -13,20 +14,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+// Validation messages are keys in the "common" messages.
 const leadSchema = z.object({
-  prospectName: z.string().min(1, "Required"),
+  prospectName: z.string().min(1, "required"),
   prospectClientId: z.string().optional(),
-  producerId: z.string().min(1, "Select a producer"),
-  startWorkingDate: z.string().min(1, "Required"),
+  producerId: z.string().min(1, "selectProducer"),
+  startWorkingDate: z.string().min(1, "required"),
   rfqType: z.enum(["New", "Renewal"]),
   cob: z.enum(["General", "Medical", "Motor"]),
   bor: z.boolean(),
   quoted: z.boolean(),
   status: z.enum(["Secured", "Pending", "Lost"]),
-  estimatedPremium: z.string().min(1, "Required"),
+  estimatedPremium: z.string().min(1, "required"),
   commission: z.string().optional(),
   currentInsurerId: z.string().optional(),
-  city: z.string().min(1, "Required"),
+  city: z.string().min(1, "required"),
   borTimestamp: z.string().optional(),
   quoteTimestamp: z.string().optional(),
   comments: z.string().optional(),
@@ -57,6 +59,12 @@ interface LeadFormProps {
 }
 
 export function LeadFormDialog({ open, onOpenChange, defaults, onSubmit, isPending, title, userRole }: LeadFormProps) {
+  const t = useTranslations("leadForm");
+  const tc = useTranslations("common");
+  const ts = useTranslations("status");
+  const tRfq = useTranslations("rfq");
+  const tCob = useTranslations("cob");
+  const err = (message?: string) => (message ? <p className="text-xs text-destructive">{tc(message)}</p> : null);
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
     values: {
@@ -99,7 +107,7 @@ export function LeadFormDialog({ open, onOpenChange, defaults, onSubmit, isPendi
         </DialogHeader>
         <form id="lead-form" onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
           <div className="col-span-2 space-y-1.5">
-            <Label htmlFor="prospectName">Prospect Name</Label>
+            <Label htmlFor="prospectName">{t("prospectName")}</Label>
             <ProspectAutocomplete
               value={form.watch("prospectName")}
               onChange={(name) => form.setValue("prospectName", name)}
@@ -113,72 +121,72 @@ export function LeadFormDialog({ open, onOpenChange, defaults, onSubmit, isPendi
               }}
               disabled={!!defaults?.prospectClientId}
             />
-            {form.formState.errors.prospectName && <p className="text-xs text-destructive">{form.formState.errors.prospectName.message}</p>}
+            {err(form.formState.errors.prospectName?.message)}
             {form.watch("prospectClientId") && (
-              <p className="text-xs text-muted-foreground">Linked to prospect record</p>
+              <p className="text-xs text-muted-foreground">{t("linkedToProspect")}</p>
             )}
           </div>
 
           {!isSalesman && (
             <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="producerId">Producer</Label>
+              <Label htmlFor="producerId">{t("producer")}</Label>
               <select id="producerId" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("producerId")}>
-                <option value="">Select producer...</option>
+                <option value="">{t("selectProducer")}</option>
                 {producers.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
-              {form.formState.errors.producerId && <p className="text-xs text-destructive">{form.formState.errors.producerId.message}</p>}
+              {err(form.formState.errors.producerId?.message)}
             </div>
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="startWorkingDate">Start Date</Label>
+            <Label htmlFor="startWorkingDate">{t("startDate")}</Label>
             <Input id="startWorkingDate" type="date" {...form.register("startWorkingDate")} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="rfqType">RFQ Type</Label>
+            <Label htmlFor="rfqType">{t("rfqType")}</Label>
             <select id="rfqType" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("rfqType")}>
-              <option value="New">New</option>
-              <option value="Renewal">Renewal</option>
+              <option value="New">{tRfq("New")}</option>
+              <option value="Renewal">{tRfq("Renewal")}</option>
             </select>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="cob">Class of Business</Label>
+            <Label htmlFor="cob">{t("cob")}</Label>
             <select id="cob" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("cob")}>
-              <option value="General">General</option>
-              <option value="Medical">Medical</option>
-              <option value="Motor">Motor</option>
+              <option value="General">{tCob("General")}</option>
+              <option value="Medical">{tCob("Medical")}</option>
+              <option value="Motor">{tCob("Motor")}</option>
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">{t("status")}</Label>
             <select id="status" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("status")}>
-              <option value="Pending">Pending</option>
-              <option value="Secured">Secured</option>
-              <option value="Lost">Lost</option>
+              <option value="Pending">{ts("Pending")}</option>
+              <option value="Secured">{ts("Secured")}</option>
+              <option value="Lost">{ts("Lost")}</option>
             </select>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="estimatedPremium">Estimated Premium</Label>
+            <Label htmlFor="estimatedPremium">{t("estimatedPremium")}</Label>
             <Input id="estimatedPremium" type="number" step="0.01" {...form.register("estimatedPremium")} />
-            {form.formState.errors.estimatedPremium && <p className="text-xs text-destructive">{form.formState.errors.estimatedPremium.message}</p>}
+            {err(form.formState.errors.estimatedPremium?.message)}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="commission">Commission</Label>
+            <Label htmlFor="commission">{t("commission")}</Label>
             <Input id="commission" type="number" step="0.01" {...form.register("commission")} />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="city">City</Label>
+            <Label htmlFor="city">{t("city")}</Label>
             <Input id="city" {...form.register("city")} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="currentInsurerId">Current Insurer</Label>
+            <Label htmlFor="currentInsurerId">{t("currentInsurer")}</Label>
             <select id="currentInsurerId" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("currentInsurerId")}>
-              <option value="">None</option>
+              <option value="">{tc("none")}</option>
               {insurers.map((i) => (
                 <option key={i.id} value={i.id}>{i.name}</option>
               ))}
@@ -188,22 +196,22 @@ export function LeadFormDialog({ open, onOpenChange, defaults, onSubmit, isPendi
           <BooleanCheckboxes form={form} />
 
           <div className="space-y-1.5">
-            <Label htmlFor="borTimestamp">BOR Date</Label>
+            <Label htmlFor="borTimestamp">{t("borDate")}</Label>
             <Input id="borTimestamp" type="date" {...form.register("borTimestamp")} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="quoteTimestamp">Quote Date</Label>
+            <Label htmlFor="quoteTimestamp">{t("quoteDate")}</Label>
             <Input id="quoteTimestamp" type="date" {...form.register("quoteTimestamp")} />
           </div>
 
           <div className="col-span-2 space-y-1.5">
-            <Label htmlFor="comments">Comments</Label>
+            <Label htmlFor="comments">{t("comments")}</Label>
             <Textarea id="comments" rows={2} {...form.register("comments")} />
           </div>
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" form="lead-form" disabled={isPending}>Save</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{tc("cancel")}</Button>
+          <Button type="submit" form="lead-form" disabled={isPending}>{tc("save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -221,6 +229,7 @@ function ProspectAutocomplete({
   onSelect: (prospect: ProspectSuggestion) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations("leadForm");
   const [query, setQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -255,12 +264,12 @@ function ProspectAutocomplete({
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+        <Search className="absolute start-2.5 top-2.5 size-4 text-muted-foreground" />
         <Input
           id="prospectName"
           autoComplete="off"
-          placeholder="Search or type prospect name..."
-          className="pl-8"
+          placeholder={t("prospectPlaceholder")}
+          className="ps-8"
           value={value}
           onChange={handleInputChange}
           onFocus={() => { if (suggestions.length > 0) setShowDropdown(true); }}
@@ -273,7 +282,7 @@ function ProspectAutocomplete({
             <button
               key={s.id}
               type="button"
-              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
+              className="flex w-full items-center justify-between px-3 py-2 text-start text-sm hover:bg-muted"
               onClick={() => {
                 onSelect(s);
                 setShowDropdown(false);
@@ -292,15 +301,16 @@ function ProspectAutocomplete({
 function BooleanCheckboxes({ form }: { form: ReturnType<typeof useForm<LeadFormValues>> }) {
   const bor = useWatch({ control: form.control, name: "bor" });
   const quoted = useWatch({ control: form.control, name: "quoted" });
+  const t = useTranslations("leadForm");
   return (
     <div className="flex items-center gap-4 col-span-2">
       <label className="flex items-center gap-2 text-sm">
         <Checkbox checked={bor} onCheckedChange={(v) => form.setValue("bor", !!v)} />
-        BOR Received
+        {t("borReceived")}
       </label>
       <label className="flex items-center gap-2 text-sm">
         <Checkbox checked={quoted} onCheckedChange={(v) => form.setValue("quoted", !!v)} />
-        Quoted
+        {t("quoted")}
       </label>
     </div>
   );

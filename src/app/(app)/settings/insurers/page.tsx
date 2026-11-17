@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -24,7 +25,7 @@ interface Insurer {
 }
 
 const schema = z.object({
-  name: z.string().min(1, "Required"),
+  name: z.string().min(1, "required"),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -32,6 +33,8 @@ export default function InsurersPage() {
   const user = useCurrentUser();
   const isAdmin = hasRole(user.role, "admin");
   const queryClient = useQueryClient();
+  const t = useTranslations("insurers");
+  const tc = useTranslations("common");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Insurer | null>(null);
 
@@ -50,13 +53,13 @@ export default function InsurersPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed");
+        throw new Error(err.error || tc("failed"));
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings-insurers"] });
-      toast.success(editing ? "Insurer updated" : "Insurer added");
+      toast.success(editing ? t("updated") : t("added"));
       closeDialog();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -67,12 +70,12 @@ export default function InsurersPage() {
       const res = await fetch(`/api/settings/insurers/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Delete failed");
+        throw new Error(err.error || tc("deleteFailed"));
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings-insurers"] });
-      toast.success("Insurer deleted");
+      toast.success(t("deleted"));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -93,7 +96,7 @@ export default function InsurersPage() {
   const columns = useMemo<LegacyColumnDef<Insurer, unknown>[]>(
     () => [
       { accessorKey: "id", header: "ID", size: 60 },
-      { accessorKey: "name", header: "Name" },
+      { accessorKey: "name", header: t("colName") },
       ...(isAdmin
         ? [
             {
@@ -103,15 +106,17 @@ export default function InsurersPage() {
               enableSorting: false,
               cell: ({ row }) => (
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(row.original)}>
+                  <Button variant="ghost" size="icon" className="size-7" title={tc("edit")} aria-label={tc("edit")} onClick={() => openEdit(row.original)}>
                     <Pencil className="size-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="size-7 text-destructive hover:text-destructive"
+                    title={tc("delete")}
+                    aria-label={tc("delete")}
                     onClick={() => {
-                      if (confirm("Delete this insurance company?")) deleteMutation.mutate(row.original.id);
+                      if (confirm(t("confirmDelete"))) deleteMutation.mutate(row.original.id);
                     }}
                   >
                     <Trash2 className="size-3.5" />
@@ -122,21 +127,21 @@ export default function InsurersPage() {
           ]
         : []),
     ],
-    [isAdmin, deleteMutation],
+    [isAdmin, deleteMutation, t, tc],
   );
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Insurance Companies" description="Manage the list of insurance companies">
+      <PageHeader title={t("title")} description={t("description")}>
         {isAdmin && (
           <Button onClick={openCreate}>
             <Plus className="size-4" />
-            Add Insurer
+            {t("add")}
           </Button>
         )}
       </PageHeader>
       {isLoading ? (
-        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">Loading...</div>
+        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">{tc("loading")}</div>
       ) : (
         <DataTable columns={columns} data={insurers} />
       )}
@@ -164,6 +169,8 @@ function InsurerFormDialog({
   onSubmit: (v: FormValues) => void;
   isPending: boolean;
 }) {
+  const t = useTranslations("insurers");
+  const tc = useTranslations("common");
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     values: editing ? { name: editing.name } : { name: "" },
@@ -173,18 +180,18 @@ function InsurerFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit Insurer" : "Add Insurer"}</DialogTitle>
+          <DialogTitle>{editing ? t("editTitle") : t("add")}</DialogTitle>
         </DialogHeader>
         <form id="insurer-form" onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="insurer-name">Company Name</Label>
+            <Label htmlFor="insurer-name">{t("companyName")}</Label>
             <Input id="insurer-name" {...form.register("name")} />
-            {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
+            {form.formState.errors.name?.message && <p className="text-xs text-destructive">{tc(form.formState.errors.name.message)}</p>}
           </div>
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" form="insurer-form" disabled={isPending}>{editing ? "Save" : "Add"}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{tc("cancel")}</Button>
+          <Button type="submit" form="insurer-form" disabled={isPending}>{editing ? tc("save") : tc("add")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

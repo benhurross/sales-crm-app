@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { DataTable } from "@/components/data-table";
+import { renderWithIntl as render } from "./helpers/intl";
 
 type Row = { name: string };
 const rows = (n: number, prefix = "Row") => Array.from({ length: n }, (_, i) => ({ name: `${prefix} ${String(i + 1).padStart(2, "0")}` }));

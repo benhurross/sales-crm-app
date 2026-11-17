@@ -15,8 +15,12 @@ export function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-const dateFmt = new Intl.DateTimeFormat("en-SA", { year: "numeric", month: "short", day: "numeric" });
+const dateFormats = {
+  en: new Intl.DateTimeFormat("en-SA", { year: "numeric", month: "short", day: "numeric" }),
+  // Arabic month names with the Gregorian calendar and Western digits
+  ar: new Intl.DateTimeFormat("ar-SA-u-ca-gregory-nu-latn", { year: "numeric", month: "short", day: "numeric" }),
+};
 
-export function formatDate(date: Date | string): string {
-  return dateFmt.format(typeof date === "string" ? new Date(date) : date);
+export function formatDate(date: Date | string, locale = "en"): string {
+  return (locale === "ar" ? dateFormats.ar : dateFormats.en).format(typeof date === "string" ? new Date(date) : date);
 }

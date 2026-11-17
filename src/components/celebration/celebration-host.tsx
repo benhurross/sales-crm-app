@@ -4,17 +4,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 import { PartyPopper, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Milestone } from "@/lib/celebration";
 import { formatAmount } from "@/lib/format";
 import { hasRole } from "@/lib/permissions";
 import { playChime } from "./sound";
 
 interface MyWins {
-  celebrations: { id: number; client: string; premium: number; big: boolean; milestones: string[] }[];
+  celebrations: { id: number; client: string; premium: number; big: boolean; milestones: Milestone[] }[];
   kudos: { id: number; from: string; message: string | null; client: string }[];
 }
 export interface TeamWin {
@@ -47,6 +49,7 @@ export function CelebrationHost() {
   const isManager = hasRole(user.role, "manager");
   const queryClient = useQueryClient();
   const router = useRouter();
+  const t = useTranslations("wins");
 
   const { data } = useQuery<MyWins>({
     queryKey: ["wins", "me"],
@@ -87,12 +90,15 @@ export function CelebrationHost() {
     const byClient = Map.groupBy(fresh, (k) => k.client);
     for (const [client, list] of byClient) {
       const names = list.map((k) => firstName(k.from));
-      const who = names.length > 2 ? `${names.slice(0, 2).join(", ")} and ${names.length - 2} others` : names.join(" and ");
+      const who =
+        names.length > 2
+          ? t("namesAndOthers", { names: names.slice(0, 2).join(t("listSeparator")), count: names.length - 2 })
+          : names.join(t("and"));
       const notes = list.filter((k) => k.message).map((k) => `${firstName(k.from)}: "${k.message}"`);
-      toast(`${who} congratulated you on ${client}`, { description: notes.join("  ") || undefined, icon: <Trophy className="size-4 text-amber-500" />, duration: 8000 });
+      toast(t("congratulatedYou", { who, client }), { description: notes.join("  ") || undefined, icon: <Trophy className="size-4 text-amber-500" />, duration: 8000 });
     }
     seen.mutate({ kudosSeen: fresh.map((k) => k.id) });
-  }, [data?.kudos, seen]);
+  }, [data?.kudos, seen, t]);
 
   // Managers: a notice for each team win since they last looked
   useEffect(() => {
@@ -104,17 +110,17 @@ export function CelebrationHost() {
     const newest = team[0].securedAt;
     if (last) {
       for (const w of team.filter((w) => w.securedAt > last! && !w.isOwn).reverse())
-        toast(`${w.producer} secured ${w.client}`, {
+        toast(t("teamWin", { name: w.producer, client: w.client }), {
           description: w.premium !== null ? formatAmount(Math.round(w.premium)) : undefined,
           icon: <PartyPopper className="size-4 text-emerald-500" />,
-          action: { label: "View wins", onClick: () => router.push("/#recent-wins") },
+          action: { label: t("viewWins"), onClick: () => router.push("/#recent-wins") },
           duration: 10_000,
         });
     }
     try {
       localStorage.setItem(LAST_TEAM_WIN, newest);
     } catch {}
-  }, [team, router]);
+  }, [team, router, t]);
 
   if (!current) return null;
   const close = () => seen.mutate({ celebrated: [current.id] });
@@ -126,25 +132,25 @@ export function CelebrationHost() {
           <div className="mx-auto mb-1 flex size-14 items-center justify-center rounded-full bg-emerald-500/15">
             <Trophy className="size-7 text-emerald-500" />
           </div>
-          <DialogTitle className="text-xl">Congratulations, {firstName(user.name)}!</DialogTitle>
+          <DialogTitle className="text-xl">{t("congratulations", { name: firstName(user.name) })}</DialogTitle>
           <DialogDescription className="text-base text-foreground">
-            You secured <b>{current.client}</b>
+            {t.rich("youSecured", { client: current.client, b: (chunks) => <b>{chunks}</b> })}
             <span className="mt-1 block text-2xl font-semibold text-emerald-600 dark:text-emerald-400">{formatAmount(Math.round(current.premium))}</span>
           </DialogDescription>
         </DialogHeader>
         {current.milestones.length > 0 && (
           <ul className="space-y-1.5">
             {current.milestones.map((m) => (
-              <li key={m} className="rounded-md bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-700 dark:text-amber-300">
-                {m}
+              <li key={m.key} className="rounded-md bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-700 dark:text-amber-300">
+                {t(`milestones.${m.key}`, { value: "value" in m ? m.value : 0 })}
               </li>
             ))}
           </ul>
         )}
-        <p className="text-sm text-muted-foreground">Every win counts. The whole team is celebrating with you.</p>
+        <p className="text-sm text-muted-foreground">{t("everyWinCounts")}</p>
         <DialogFooter className="sm:justify-center">
           <Button onClick={close} autoFocus>
-            {remaining > 0 ? `Next win (${remaining} more)` : "Thank you"}
+            {remaining > 0 ? t("nextWin", { count: remaining }) : t("thankYou")}
           </Button>
         </DialogFooter>
       </DialogContent>

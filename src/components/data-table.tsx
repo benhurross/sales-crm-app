@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-table/legacy";
 import { flexRender } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -50,6 +51,7 @@ export function DataTable<TData extends Record<string, any>>({
   pageSize = 25,
   server,
 }: DataTableProps<TData>) {
+  const t = useTranslations("common");
   const [localSorting, setSorting] = useState<Sorting>([]);
   const sorting = server?.sorting ?? localSorting;
   const [columnFilters, setColumnFilters] = useState<{ id: string; value: unknown }[]>([]);
@@ -148,7 +150,7 @@ export function DataTable<TData extends Record<string, any>>({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No results.
+                  {t("noResults")}
                 </TableCell>
               </TableRow>
             )}
@@ -158,14 +160,14 @@ export function DataTable<TData extends Record<string, any>>({
       {pageCount > 1 && (
         <div className="flex items-center justify-between px-1 text-sm text-muted-foreground">
           <span>
-            Page {pageIndex + 1} of {pageCount} ({server?.rowCount ?? table.getFilteredRowModel().rows.length} rows)
+            {t("page", { page: pageIndex + 1, pages: pageCount, rows: server?.rowCount ?? table.getFilteredRowModel().rows.length })}
           </span>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="size-8" aria-label="Previous page" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
-              <ChevronLeft className="size-4" />
+            <Button variant="outline" size="icon" className="size-8" aria-label={t("previousPage")} disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
+              <ChevronLeft className="size-4 rtl:rotate-180" />
             </Button>
-            <Button variant="outline" size="icon" className="size-8" aria-label="Next page" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
-              <ChevronRight className="size-4" />
+            <Button variant="outline" size="icon" className="size-8" aria-label={t("nextPage")} disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
+              <ChevronRight className="size-4 rtl:rotate-180" />
             </Button>
           </div>
         </div>

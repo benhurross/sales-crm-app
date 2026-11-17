@@ -6,10 +6,18 @@ export interface Win {
   securedAt: Date | null;
 }
 
+/** A milestone as a message key plus its number, so each language can word it. */
+export type Milestone =
+  | { key: "firstThisMonth" }
+  | { key: "personalBest" }
+  | { key: "targetReached" }
+  | { key: "targetPassed"; value: number }
+  | { key: "weekStreak"; value: number };
+
 export interface Celebration {
   /** A bigger celebration for wins that hit a milestone. */
   big: boolean;
-  milestones: string[];
+  milestones: Milestone[];
 }
 
 export const TARGET_STEPS = [25, 50, 75, 100];
@@ -29,24 +37,24 @@ function weekStart(date: Date): number {
  */
 export function celebrationFor(win: Required<Win> & { securedAt: Date }, otherWins: Win[], annualTarget: number): Celebration {
   const earlier = otherWins.filter((w) => !w.securedAt || w.securedAt < win.securedAt);
-  const milestones: string[] = [];
+  const milestones: Milestone[] = [];
 
-  if (!earlier.some((w) => w.securedAt && sameMonth(w.securedAt, win.securedAt))) milestones.push("Your first win this month");
+  if (!earlier.some((w) => w.securedAt && sameMonth(w.securedAt, win.securedAt))) milestones.push({ key: "firstThisMonth" });
 
   const best = Math.max(0, ...earlier.map((w) => w.premium));
-  if (earlier.length > 0 && win.premium > best) milestones.push("A new personal best deal");
+  if (earlier.length > 0 && win.premium > best) milestones.push({ key: "personalBest" });
 
   if (annualTarget > 0) {
     const before = earlier.reduce((s, w) => s + w.premium, 0) / annualTarget;
     const after = before + win.premium / annualTarget;
     const crossed = TARGET_STEPS.filter((step) => before * 100 < step && after * 100 >= step).pop();
-    if (crossed === 100) milestones.push("You reached your annual target");
-    else if (crossed) milestones.push(`You passed ${crossed}% of your annual target`);
+    if (crossed === 100) milestones.push({ key: "targetReached" });
+    else if (crossed) milestones.push({ key: "targetPassed", value: crossed });
   }
 
   const week = weekStart(win.securedAt);
   const thisWeek = 1 + earlier.filter((w) => w.securedAt && weekStart(w.securedAt) === week).length;
-  if (thisWeek >= 3) milestones.push(`${thisWeek} wins this week`);
+  if (thisWeek >= 3) milestones.push({ key: "weekStreak", value: thisWeek });
 
-  return { big: milestones.some((m) => m !== "Your first win this month") || win.premium >= 100_000, milestones };
+  return { big: milestones.some((m) => m.key !== "firstThisMonth") || win.premium >= 100_000, milestones };
 }

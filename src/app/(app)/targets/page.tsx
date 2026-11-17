@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { Medal, Pencil, Save, Trophy, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
@@ -25,6 +26,8 @@ export default function TargetsPage() {
   const user = useCurrentUser();
   const canEdit = hasRole(user.role, "manager");
   const queryClient = useQueryClient();
+  const t = useTranslations("targets");
+  const tc = useTranslations("common");
 
   const { data: targets = [], isLoading } = useQuery<ProducerTarget[]>({
     queryKey: ["targets"],
@@ -42,12 +45,12 @@ export default function TargetsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ annualTarget, monthlyTarget }),
       });
-      if (!res.ok) throw new Error("Update failed");
+      if (!res.ok) throw new Error(tc("failed"));
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["targets"] });
-      toast.success("Target updated");
+      toast.success(t("updated"));
       setEditingId(null);
     },
     onError: (err: Error) => toast.error(err.message),
@@ -66,11 +69,11 @@ export default function TargetsPage() {
 
   const columns = useMemo<LegacyColumnDef<ProducerTarget, unknown>[]>(
     () => [
-      { accessorKey: "name", header: "Producer" },
-      { accessorKey: "region", header: "Region", size: 90 },
+      { accessorKey: "name", header: t("colProducer") },
+      { accessorKey: "region", header: t("colRegion"), size: 90 },
       {
         accessorKey: "annualTarget",
-        header: "Annual Target",
+        header: t("colAnnual"),
         cell: ({ row }) => {
           if (editingId === row.original.id) {
             return (
@@ -90,7 +93,7 @@ export default function TargetsPage() {
       },
       {
         accessorKey: "monthlyTarget",
-        header: "Monthly Target",
+        header: t("colMonthly"),
         cell: ({ row }) => {
           if (editingId === row.original.id) {
             return (
@@ -110,14 +113,14 @@ export default function TargetsPage() {
       },
       {
         id: "secured",
-        header: "Secured",
+        header: t("colSecured"),
         cell: ({ row }) => formatAmount(Number(row.original.securedPremium)),
         sortingFn: (a: { original: ProducerTarget }, b: { original: ProducerTarget }) =>
           Number(a.original.securedPremium) - Number(b.original.securedPremium),
       },
       {
         id: "achievement",
-        header: "Achievement",
+        header: t("colAchievement"),
         size: 180,
         cell: ({ row }) => {
           const pct = achievementPct(row.original.securedPremium, row.original.annualTarget);
@@ -148,17 +151,17 @@ export default function TargetsPage() {
                 if (editingId === row.original.id) {
                   return (
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="size-7 text-emerald-600" onClick={() => saveEdit(row.original.id)}>
+                      <Button variant="ghost" size="icon" className="size-7 text-emerald-600" title={tc("save")} aria-label={tc("save")} onClick={() => saveEdit(row.original.id)}>
                         <Save className="size-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditingId(null)}>
+                      <Button variant="ghost" size="icon" className="size-7" title={tc("cancel")} aria-label={tc("cancel")} onClick={() => setEditingId(null)}>
                         <X className="size-3.5" />
                       </Button>
                     </div>
                   );
                 }
                 return (
-                  <Button variant="ghost" size="icon" className="size-7" onClick={() => startEdit(row.original)}>
+                  <Button variant="ghost" size="icon" className="size-7" title={tc("edit")} aria-label={tc("edit")} onClick={() => startEdit(row.original)}>
                     <Pencil className="size-3.5" />
                   </Button>
                 );
@@ -167,17 +170,17 @@ export default function TargetsPage() {
           ]
         : []),
     ],
-    [canEdit, editingId, editAnnual, editMonthly, saveEdit],
+    [canEdit, editingId, editAnnual, editMonthly, saveEdit, t, tc],
   );
 
   const leaderboard = useMemo(() => rankBySecured(targets).slice(0, 10), [targets]);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Targets" description="Sales targets and achievements" />
+      <PageHeader title={t("title")} description={t("description")} />
 
       {isLoading ? (
-        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">Loading...</div>
+        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">{tc("loading")}</div>
       ) : (
         <>
           <DataTable columns={columns} data={targets} />
@@ -186,7 +189,7 @@ export default function TargetsPage() {
             <div className="rounded-xl border bg-card p-6 shadow-glass glass-sheen">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                 <Trophy className="size-5 text-amber-500" />
-                Leaderboard
+                {t("leaderboard")}
               </h2>
               <div className="space-y-3">
                 {leaderboard.map((p, i) => {

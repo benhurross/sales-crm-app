@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Sidebar,
   SidebarContent,
@@ -22,9 +23,11 @@ export function AppSidebar() {
   const user = useCurrentUser();
   const groups = navFor(user.role ?? undefined);
   const active = activeHref(groups, pathname);
+  const t = useTranslations("nav");
+  const rtl = useLocale() === "ar";
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" side={rtl ? "right" : "left"}>
       <SidebarHeader className="h-14 justify-center px-3">
         <Link href="/" className="flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
           <Image
@@ -42,19 +45,19 @@ export function AppSidebar() {
       <SidebarContent>
         {groups.map((group) => (
           <SidebarGroup key={group.key}>
-            <SidebarGroupLabel className="text-sidebar-muted">{group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sidebar-muted">{t(group.key)}</SidebarGroupLabel>
             <SidebarMenu>
               {group.items.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
                     isActive={item.href === active}
-                    tooltip={item.label}
+                    tooltip={t(item.key)}
                     className="data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
                   >
                     <Link href={item.href} aria-current={item.href === active ? "page" : undefined}>
                       <item.icon />
-                      <span>{item.label}</span>
+                      <span>{t(item.key)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

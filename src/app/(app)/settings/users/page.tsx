@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { Pencil, Plus, ShieldCheck, Trash2, UserX } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -28,18 +29,19 @@ interface UserRow {
   createdAt: string;
 }
 
+// Validation messages are keys in the "common" messages.
 const createSchema = z.object({
-  name: z.string().min(1, "Required"),
-  email: z.string().email("Invalid email"),
-  password: z.string().min(8, "Min 8 characters"),
+  name: z.string().min(1, "required"),
+  email: z.string().email("invalidEmail"),
+  password: z.string().min(8, "minPassword"),
   role: z.enum(["admin", "manager", "salesman"]),
 });
 
 const editSchema = z.object({
-  name: z.string().min(1, "Required"),
-  email: z.string().email("Invalid email"),
+  name: z.string().min(1, "required"),
+  email: z.string().email("invalidEmail"),
   role: z.enum(["admin", "manager", "salesman"]),
-  password: z.string().min(8, "Min 8 characters").or(z.literal("")).optional(),
+  password: z.string().min(8, "minPassword").or(z.literal("")).optional(),
 });
 
 type CreateValues = z.infer<typeof createSchema>;
@@ -49,6 +51,9 @@ export default function UsersPage() {
   const currentUser = useCurrentUser();
   const isAdmin = hasRole(currentUser.role, "admin");
   const queryClient = useQueryClient();
+  const t = useTranslations("users");
+  const tc = useTranslations("common");
+  const tu = useTranslations("user");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<UserRow | null>(null);
 
@@ -66,13 +71,13 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed");
+        throw new Error(err.error || tc("failed"));
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings-users"] });
-      toast.success("User created");
+      toast.success(t("created"));
       closeDialog();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -89,13 +94,13 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed");
+        throw new Error(err.error || tc("failed"));
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings-users"] });
-      toast.success("User updated");
+      toast.success(t("updated"));
       closeDialog();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -108,12 +113,12 @@ export default function UsersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ banned, banReason: banned ? "Deactivated by admin" : null }),
       });
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) throw new Error(tc("failed"));
       return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["settings-users"] });
-      toast.success(vars.banned ? "User deactivated" : "User reactivated");
+      toast.success(vars.banned ? t("deactivated") : t("reactivated"));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -123,12 +128,12 @@ export default function UsersPage() {
       const res = await fetch(`/api/settings/users/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed");
+        throw new Error(err.error || tc("failed"));
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings-users"] });
-      toast.success("User deleted");
+      toast.success(t("deleted"));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -148,20 +153,20 @@ export default function UsersPage() {
 
   const columns = useMemo<LegacyColumnDef<UserRow, unknown>[]>(
     () => [
-      { accessorKey: "name", header: "Name" },
-      { accessorKey: "email", header: "Email" },
+      { accessorKey: "name", header: t("colName") },
+      { accessorKey: "email", header: t("colEmail") },
       {
         accessorKey: "role",
-        header: "Role",
+        header: t("colRole"),
         size: 110,
         cell: ({ getValue }) => {
           const r = getValue() as string;
-          return <span className="capitalize">{r}</span>;
+          return <span>{tu(`roles.${r}`)}</span>;
         },
       },
       {
         id: "status",
-        header: "Status",
+        header: t("colStatus"),
         size: 110,
         accessorFn: (row) => (row.banned ? "Deactivated" : "Active"),
         cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
@@ -178,7 +183,7 @@ export default function UsersPage() {
                 const isSelf = u.id === currentUser.id;
                 return (
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(u)}>
+                    <Button variant="ghost" size="icon" className="size-7" title={tc("edit")} aria-label={tc("edit")} onClick={() => openEdit(u)}>
                       <Pencil className="size-3.5" />
                     </Button>
                     {!isSelf && (
@@ -186,9 +191,10 @@ export default function UsersPage() {
                         variant="ghost"
                         size="icon"
                         className="size-7"
-                        title={u.banned ? "Reactivate" : "Deactivate"}
+                        title={u.banned ? t("reactivate") : t("deactivate")}
+                        aria-label={u.banned ? t("reactivate") : t("deactivate")}
                         onClick={() => {
-                          if (confirm(u.banned ? "Reactivate this user?" : "Deactivate this user?"))
+                          if (confirm(u.banned ? t("confirmReactivate") : t("confirmDeactivate")))
                             toggleBanMutation.mutate({ id: u.id, banned: !u.banned });
                         }}
                       >
@@ -200,9 +206,10 @@ export default function UsersPage() {
                         variant="ghost"
                         size="icon"
                         className="size-7"
-                        title="Delete"
+                        title={tc("delete")}
+                        aria-label={tc("delete")}
                         onClick={() => {
-                          if (confirm(`Permanently delete ${u.name}? Their leads and prospects are kept.`))
+                          if (confirm(t("confirmDelete", { name: u.name })))
                             deleteMutation.mutate(u.id);
                         }}
                       >
@@ -216,21 +223,21 @@ export default function UsersPage() {
           ]
         : []),
     ],
-    [isAdmin, currentUser.id, toggleBanMutation, deleteMutation],
+    [isAdmin, currentUser.id, toggleBanMutation, deleteMutation, t, tc, tu],
   );
 
   return (
     <div className="space-y-6">
-      <PageHeader title="User Management" description="Create, edit, deactivate and delete user accounts">
+      <PageHeader title={t("title")} description={t("description")}>
         {isAdmin && (
           <Button onClick={openCreate}>
             <Plus className="size-4" />
-            Add User
+            {t("add")}
           </Button>
         )}
       </PageHeader>
       {isLoading ? (
-        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">Loading...</div>
+        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">{tc("loading")}</div>
       ) : (
         <DataTable columns={columns} data={users} />
       )}
@@ -265,6 +272,10 @@ function CreateUserDialog({
   onSubmit: (v: CreateValues) => void;
   isPending: boolean;
 }) {
+  const t = useTranslations("users");
+  const tc = useTranslations("common");
+  const tu = useTranslations("user");
+  const err = (message?: string) => (message ? <p className="text-xs text-destructive">{tc(message)}</p> : null);
   const form = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
     defaultValues: { name: "", email: "", password: "", role: "salesman" },
@@ -274,36 +285,36 @@ function CreateUserDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add User</DialogTitle>
+          <DialogTitle>{t("add")}</DialogTitle>
         </DialogHeader>
         <form id="create-user-form" onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">{t("colName")}</Label>
             <Input id="name" {...form.register("name")} />
-            {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
+            {err(form.formState.errors.name?.message)}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("colEmail")}</Label>
             <Input id="email" type="email" {...form.register("email")} />
-            {form.formState.errors.email && <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>}
+            {err(form.formState.errors.email?.message)}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("password")}</Label>
             <Input id="password" type="password" {...form.register("password")} />
-            {form.formState.errors.password && <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>}
+            {err(form.formState.errors.password?.message)}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="role">{t("colRole")}</Label>
             <select id="role" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("role")}>
-              <option value="salesman">Salesman</option>
-              <option value="manager">Manager</option>
-              <option value="admin">Admin</option>
+              <option value="salesman">{tu("roles.salesman")}</option>
+              <option value="manager">{tu("roles.manager")}</option>
+              <option value="admin">{tu("roles.admin")}</option>
             </select>
           </div>
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" form="create-user-form" disabled={isPending}>Add</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{tc("cancel")}</Button>
+          <Button type="submit" form="create-user-form" disabled={isPending}>{tc("add")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -323,6 +334,10 @@ function EditUserDialog({
   onSubmit: (v: EditValues) => void;
   isPending: boolean;
 }) {
+  const t = useTranslations("users");
+  const tc = useTranslations("common");
+  const tu = useTranslations("user");
+  const err = (message?: string) => (message ? <p className="text-xs text-destructive">{tc(message)}</p> : null);
   const form = useForm<EditValues>({
     resolver: zodResolver(editSchema),
     values: { name: user.name, email: user.email, role: user.role as EditValues["role"], password: "" },
@@ -332,36 +347,36 @@ function EditUserDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit User</DialogTitle>
+          <DialogTitle>{t("editTitle")}</DialogTitle>
         </DialogHeader>
         <form id="edit-user-form" onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="edit-name">Name</Label>
+            <Label htmlFor="edit-name">{t("colName")}</Label>
             <Input id="edit-name" {...form.register("name")} />
-            {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
+            {err(form.formState.errors.name?.message)}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="edit-email">Email</Label>
+            <Label htmlFor="edit-email">{t("colEmail")}</Label>
             <Input id="edit-email" type="email" {...form.register("email")} />
-            {form.formState.errors.email && <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>}
+            {err(form.formState.errors.email?.message)}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="edit-password">New Password</Label>
-            <Input id="edit-password" type="password" placeholder="Leave blank to keep current" {...form.register("password")} />
-            {form.formState.errors.password && <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>}
+            <Label htmlFor="edit-password">{t("newPassword")}</Label>
+            <Input id="edit-password" type="password" placeholder={t("keepPassword")} {...form.register("password")} />
+            {err(form.formState.errors.password?.message)}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="edit-role">Role</Label>
+            <Label htmlFor="edit-role">{t("colRole")}</Label>
             <select id="edit-role" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" {...form.register("role")}>
-              <option value="salesman">Salesman</option>
-              <option value="manager">Manager</option>
-              <option value="admin">Admin</option>
+              <option value="salesman">{tu("roles.salesman")}</option>
+              <option value="manager">{tu("roles.manager")}</option>
+              <option value="admin">{tu("roles.admin")}</option>
             </select>
           </div>
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" form="edit-user-form" disabled={isPending}>Save</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{tc("cancel")}</Button>
+          <Button type="submit" form="edit-user-form" disabled={isPending}>{tc("save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

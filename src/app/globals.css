@@ -80,6 +80,11 @@
   --sidebar-muted: #a9b7d0;
 }
 
+/* Arabic: the Arabic face first, so Latin names and digits fall back to IBM Plex Sans. */
+html[lang="ar"] {
+  --app-font: var(--font-riyal), var(--font-plex-arabic), var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+}
+
 .dark {
   color-scheme: dark;
   --background: #0d1526;

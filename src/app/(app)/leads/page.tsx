@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/components/app-shell/current-user";
@@ -44,6 +45,12 @@ export default function LeadsPage() {
   const user = useCurrentUser();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
+  const t = useTranslations("leads");
+  const tc = useTranslations("common");
+  const ts = useTranslations("status");
+  const tRfq = useTranslations("rfq");
+  const tCob = useTranslations("cob");
+  const locale = useLocale();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -122,14 +129,14 @@ export default function LeadsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error((await res.json()).error || "Failed");
+      if (!res.ok) throw new Error((await res.json()).error || tc("failed"));
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["wins"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-      toast.success(editingLead ? "Lead updated" : "Lead created");
+      toast.success(editingLead ? t("updated") : t("created"));
       closeForm();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -138,12 +145,12 @@ export default function LeadsPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/leads/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      if (!res.ok) throw new Error(tc("deleteFailed"));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["wins"] });
-      toast.success("Lead deleted");
+      toast.success(t("deleted"));
     },
   });
 
@@ -155,14 +162,14 @@ export default function LeadsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids, status }),
       });
-      if (!res.ok) throw new Error("Bulk update failed");
+      if (!res.ok) throw new Error(t("bulkFailed"));
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["wins"] });
       setRowSelection({});
-      toast.success(`${data.updated} leads updated`);
+      toast.success(t("bulkUpdated", { count: data.updated }));
     },
   });
 
@@ -198,50 +205,50 @@ export default function LeadsPage() {
           <Checkbox checked={row.getIsSelected()} onCheckedChange={(v) => row.toggleSelected(!!v)} />
         ),
       },
-      { accessorKey: "prospectName", header: "Prospect" },
+      { accessorKey: "prospectName", header: t("colProspect") },
       {
         id: "producer",
-        header: "Producer",
+        header: t("colProducer"),
         accessorFn: (row) => row.producerName,
         size: 160,
       },
       {
         accessorKey: "startWorkingDate",
-        header: "Date",
+        header: t("colDate"),
         size: 110,
-        cell: ({ getValue }) => formatDate(getValue() as string),
+        cell: ({ getValue }) => formatDate(getValue() as string, locale),
       },
-      { accessorKey: "rfqType", header: "RFQ", size: 80 },
-      { accessorKey: "cob", header: "COB", size: 90 },
+      { accessorKey: "rfqType", header: t("colRfq"), size: 80, cell: ({ getValue }) => tRfq(getValue() as string) },
+      { accessorKey: "cob", header: t("colCob"), size: 90, cell: ({ getValue }) => tCob(getValue() as string) },
       {
         accessorKey: "status",
-        header: "Status",
+        header: t("colStatus"),
         size: 100,
         cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
       },
       {
         accessorKey: "estimatedPremium",
-        header: "Premium",
+        header: t("colPremium"),
         size: 130,
         cell: ({ getValue }) => formatAmount(Number(getValue())),
         sortingFn: (a: { original: Lead }, b: { original: Lead }) => Number(a.original.estimatedPremium) - Number(b.original.estimatedPremium),
       },
-      { accessorKey: "city", header: "City", size: 100 },
+      { accessorKey: "city", header: t("colCity"), size: 100 },
       {
         accessorKey: "bor",
-        header: "BOR",
+        header: t("colBor"),
         size: 60,
         cell: ({ getValue }) => getValue() ? <Check className="size-4 text-emerald-500" /> : <X className="size-4 text-muted-foreground/40" />,
       },
       {
         accessorKey: "quoted",
-        header: "Quoted",
+        header: t("colQuoted"),
         size: 70,
         cell: ({ getValue }) => getValue() ? <Check className="size-4 text-emerald-500" /> : <X className="size-4 text-muted-foreground/40" />,
       },
       {
         accessorKey: "insurerName",
-        header: "Insurer",
+        header: t("colInsurer"),
         size: 120,
         cell: ({ getValue }) => getValue() || "--",
       },
@@ -252,14 +259,16 @@ export default function LeadsPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(row.original)}>
+            <Button variant="ghost" size="icon" className="size-7" title={tc("edit")} aria-label={tc("edit")} onClick={() => openEdit(row.original)}>
               <Pencil className="size-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="size-7 text-destructive hover:text-destructive"
-              onClick={() => { if (confirm("Delete this lead?")) deleteMutation.mutate(row.original.id); }}
+              title={tc("delete")}
+              aria-label={tc("delete")}
+              onClick={() => { if (confirm(t("confirmDelete"))) deleteMutation.mutate(row.original.id); }}
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -267,7 +276,7 @@ export default function LeadsPage() {
         ),
       },
     ],
-    [deleteMutation],
+    [deleteMutation, t, tc, tRfq, tCob, locale],
   );
 
   const editDefaults: Partial<LeadFormValues> | undefined = convertDefaults
@@ -295,62 +304,62 @@ export default function LeadsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Leads" description="Manage sales leads and prospects">
+      <PageHeader title={t("title")} description={t("description")}>
         <Button onClick={openCreate}>
           <Plus className="size-4" />
-          Add Lead
+          {t("add")}
         </Button>
       </PageHeader>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input placeholder="Search prospects..." className="h-9 w-56 pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Search className="absolute start-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input placeholder={t("search")} className="h-9 w-56 ps-8" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         {showProducerFilter && (
-          <select aria-label="Producer" className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={producerFilter} onChange={(e) => changeFilter(setProducerFilter)(e.target.value)}>
-            <option value="">All Producers</option>
+          <select aria-label={t("colProducer")} className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={producerFilter} onChange={(e) => changeFilter(setProducerFilter)(e.target.value)}>
+            <option value="">{tc("allProducers")}</option>
             {producerOptions.map(([id, name]) => (
               <option key={id} value={id}>{name}</option>
             ))}
           </select>
         )}
-        <select aria-label="Status" className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => changeFilter(setStatusFilter)(e.target.value)}>
-          <option value="">All Status</option>
-          <option value="Secured">Secured</option>
-          <option value="Pending">Pending</option>
-          <option value="Lost">Lost</option>
+        <select aria-label={t("colStatus")} className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => changeFilter(setStatusFilter)(e.target.value)}>
+          <option value="">{t("allStatus")}</option>
+          <option value="Secured">{ts("Secured")}</option>
+          <option value="Pending">{ts("Pending")}</option>
+          <option value="Lost">{ts("Lost")}</option>
         </select>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={cobFilter} onChange={(e) => changeFilter(setCobFilter)(e.target.value)} aria-label="Class of business">
-          <option value="">All COB</option>
-          <option value="General">General</option>
-          <option value="Medical">Medical</option>
-          <option value="Motor">Motor</option>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={cobFilter} onChange={(e) => changeFilter(setCobFilter)(e.target.value)} aria-label={t("colCob")}>
+          <option value="">{t("allCob")}</option>
+          <option value="General">{tCob("General")}</option>
+          <option value="Medical">{tCob("Medical")}</option>
+          <option value="Motor">{tCob("Motor")}</option>
         </select>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={rfqFilter} onChange={(e) => changeFilter(setRfqFilter)(e.target.value)} aria-label="RFQ type">
-          <option value="">All RFQ</option>
-          <option value="New">New</option>
-          <option value="Renewal">Renewal</option>
+        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={rfqFilter} onChange={(e) => changeFilter(setRfqFilter)(e.target.value)} aria-label={t("colRfq")}>
+          <option value="">{t("allRfq")}</option>
+          <option value="New">{tRfq("New")}</option>
+          <option value="Renewal">{tRfq("Renewal")}</option>
         </select>
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={() => { setStatusFilter(""); setCobFilter(""); setRfqFilter(""); setProducerFilter(""); setSearch(""); setRowSelection({}); }}>
-            Clear filters
+            {tc("clearFilters")}
           </Button>
         )}
 
         {selectedCount > 0 && (
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">{selectedCount} selected</span>
-            <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate("Secured")}>Mark Secured</Button>
-            <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate("Pending")}>Mark Pending</Button>
-            <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate("Lost")}>Mark Lost</Button>
+          <div className="ms-auto flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{t("selected", { count: selectedCount })}</span>
+            <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate("Secured")}>{t("markSecured")}</Button>
+            <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate("Pending")}>{t("markPending")}</Button>
+            <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate("Lost")}>{t("markLost")}</Button>
           </div>
         )}
       </div>
 
       {isLoading ? (
-        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">Loading...</div>
+        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground shadow-glass glass-sheen">{tc("loading")}</div>
       ) : (
         <DataTable
           columns={columns}
@@ -369,7 +378,7 @@ export default function LeadsPage() {
         defaults={editDefaults}
         onSubmit={(values) => saveMutation.mutate({ ...values, id: editingLead?.id })}
         isPending={saveMutation.isPending}
-        title={editingLead ? "Edit Lead" : convertDefaults ? "Convert Prospect to Lead" : "New Lead"}
+        title={editingLead ? t("editTitle") : convertDefaults ? t("convertTitle") : t("newTitle")}
         userRole={user.role}
       />
     </div>

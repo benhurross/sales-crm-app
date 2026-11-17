@@ -15,6 +15,17 @@ test.describe("auth flow", () => {
     await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
   });
 
+  test("switches to Arabic, right to left, and back", async ({ page }) => {
+    await page.goto("/sign-in");
+    await page.getByRole("button", { name: "العربية" }).click();
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByRole("heading", { name: "تسجيل الدخول" })).toBeVisible();
+    await expect(page.getByLabel("البريد الإلكتروني")).toBeVisible();
+    await page.getByRole("button", { name: "English" }).click();
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  });
+
   test("rejects invalid credentials", async ({ page }) => {
     await page.goto("/sign-in");
     await page.getByLabel("Email").fill("wrong@test.com");
