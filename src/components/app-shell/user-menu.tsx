@@ -2,10 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Languages, LogOut, Volume2, VolumeX } from "lucide-react";
+import { KeyRound, LogOut, Volume2, VolumeX } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BadgeIcons, useHighlights } from "@/components/celebration/badges";
 import { setSoundEnabled, soundEnabled } from "@/components/celebration/sound";
-import { setLocale } from "@/i18n/actions";
 import { authClient } from "@/lib/auth-client";
 import { useCurrentUser } from "./current-user";
 
@@ -43,13 +42,6 @@ export function UserMenu() {
   const [sound, setSound] = useState(soundEnabled);
   const { data: highlights } = useHighlights();
   const t = useTranslations("user");
-  const locale = useLocale();
-  const [, startTransition] = useTransition();
-  const switchLanguage = () =>
-    startTransition(async () => {
-      await setLocale(locale === "ar" ? "en" : "ar");
-      router.refresh();
-    });
 
   const signOut = async () => {
     await authClient.signOut();
@@ -93,10 +85,6 @@ export function UserMenu() {
           >
             {sound ? <Volume2 /> : <VolumeX />}
             {sound ? t("soundOn") : t("soundOff")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={switchLanguage}>
-            <Languages />
-            {locale === "ar" ? "English" : "العربية"}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={signOut}>
             <LogOut />

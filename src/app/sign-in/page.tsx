@@ -1,18 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Languages, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
-import { useTransition } from "react";
+import { useTranslations } from "next-intl";
+import { LanguageToggle } from "@/components/app-shell/language-toggle";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { setLocale } from "@/i18n/actions";
 import { authClient } from "@/lib/auth-client";
 
 const schema = z.object({ email: z.string().min(1), password: z.string().min(1) });
@@ -20,8 +19,6 @@ const schema = z.object({ email: z.string().min(1), password: z.string().min(1) 
 export default function SignInPage() {
   const router = useRouter();
   const t = useTranslations("signIn");
-  const locale = useLocale();
-  const [, startTransition] = useTransition();
   const form = useForm({ resolver: zodResolver(schema) });
   const failure = form.formState.errors.root?.message;
 
@@ -49,19 +46,7 @@ export default function SignInPage() {
       </div>
       <div className="flex flex-col">
         <div className="flex justify-end p-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              startTransition(async () => {
-                await setLocale(locale === "ar" ? "en" : "ar");
-                router.refresh();
-              })
-            }
-          >
-            <Languages />
-            {locale === "ar" ? "English" : "العربية"}
-          </Button>
+          <LanguageToggle labelled />
         </div>
         <main className="flex flex-1 items-center justify-center p-6">
           <form onSubmit={submit} className="w-full max-w-sm space-y-6">
