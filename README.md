@@ -40,6 +40,8 @@ npm run db:link              # links prospects to their leads
 
 `etl` wipes the database first, including users and passwords, so run it once at setup, not on a live system.
 
+To bring in an updated mastersheet later, copy it to the server and run `npm run db:sync -- "<file>.xlsx"`: it compares the IMPORTRANGE sheet (leads) and Prospect Clients with the app and shows what would be added and changed (add `--details` for every change). Add `--apply` to make the changes, then run `npm run db:link`. It never deletes anything or touches users.
+
 If a salesman signs in and sees no data, their account is not linked to their producer record, or one of them is duplicated. `npm run db:repair` shows the fixes, links and merges (keeping the record with the registered email), then lists what each salesman will see; add `-- --apply` to make the changes. It is safe on a live system and safe to run again.
 
 Run it as a service:
