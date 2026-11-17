@@ -11,8 +11,6 @@ export interface ReportFilters {
 
 export const BRAND_BLUE = "#0047ba";
 
-const asset = (path: string) => readFile(join(process.cwd(), path));
-
 export function esc(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
@@ -28,8 +26,8 @@ export function filterSummary(filters: ReportFilters): string {
 /** Base styles shared by every PDF: the Riyal sign font (Arial lacks U+20C1) and the letterhead. */
 async function baseCss(): Promise<string> {
   const [regular, bold] = await Promise.all([
-    asset("src/assets/fonts/saudi-riyal.woff2"),
-    asset("src/assets/fonts/saudi-riyal-bold.woff2"),
+    readFile(join(process.cwd(), "src", "assets", "fonts", "saudi-riyal.woff2")),
+    readFile(join(process.cwd(), "src", "assets", "fonts", "saudi-riyal-bold.woff2")),
   ]);
   const face = (data: Buffer, weight: number) =>
     `@font-face { font-family: "Saudi Riyal"; src: url(data:font/woff2;base64,${data.toString("base64")}) format("woff2"); font-weight: ${weight}; unicode-range: U+20C1, U+E900; }`;
@@ -48,7 +46,7 @@ async function baseCss(): Promise<string> {
 }
 
 async function logoDataUri(): Promise<string> {
-  const svg = await asset("public/brand/applus-report-logo.svg");
+  const svg = await readFile(join(process.cwd(), "public", "brand", "applus-report-logo.svg"));
   return `data:image/svg+xml;base64,${svg.toString("base64")}`;
 }
 
