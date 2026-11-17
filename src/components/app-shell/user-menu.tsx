@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BadgeIcons, useHighlights } from "@/components/celebration/badges";
 import { setSoundEnabled, soundEnabled } from "@/components/celebration/sound";
 import { setLocale } from "@/i18n/actions";
 import { authClient } from "@/lib/auth-client";
@@ -40,6 +41,7 @@ export function UserMenu() {
   const queryClient = useQueryClient();
   const [changingPassword, setChangingPassword] = useState(false);
   const [sound, setSound] = useState(soundEnabled);
+  const { data: highlights } = useHighlights();
   const t = useTranslations("user");
   const locale = useLocale();
   const [, startTransition] = useTransition();
@@ -70,6 +72,12 @@ export function UserMenu() {
             <div className="truncate text-sm font-medium">{user.name}</div>
             <div className="truncate text-xs font-normal text-muted-foreground">{user.email}</div>
             <div className="text-xs font-normal text-muted-foreground">{user.role ? t(`roles.${user.role}`) : null}</div>
+            {!!highlights?.mine.length && (
+              <div className="pt-1.5">
+                <div className="pb-1 text-[11px] font-normal text-muted-foreground">{t("myBadges")}</div>
+                <BadgeIcons badges={highlights.mine} labels />
+              </div>
+            )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setChangingPassword(true)}>

@@ -28,8 +28,16 @@ describe("celebrationFor", () => {
     expect(c.big).toBe(true);
   });
 
-  it("does not call a first-ever win a personal best", () => {
-    expect(celebrationFor({ premium: 50_000, securedAt: at("2026-11-17") }, [], 0).milestones).not.toContainEqual({ key: "personalBest" });
+  it("celebrates a first-ever win, which is not also a personal best", () => {
+    const c = celebrationFor({ premium: 50_000, securedAt: at("2026-11-17") }, [], 0);
+    expect(c.milestones).toEqual([{ key: "firstEver" }]);
+    expect(c.big).toBe(true);
+  });
+
+  it("marks the fifth win of a month, which earns the Five-Deal Month badge", () => {
+    const four = ["02", "04", "06", "08"].map((d) => ({ premium: 1, securedAt: at(`2026-11-${d}T10:00`) }));
+    expect(celebrationFor({ premium: 1, securedAt: at("2026-11-17T10:00") }, four, 0).milestones).toContainEqual({ key: "fiveThisMonth" });
+    expect(celebrationFor({ premium: 1, securedAt: at("2026-11-17T10:00") }, four.slice(1), 0).milestones).not.toContainEqual({ key: "fiveThisMonth" });
   });
 
   it("reports the highest target step crossed", () => {

@@ -1,6 +1,8 @@
 import ExcelJS from "exceljs";
 import { RIYAL } from "@/lib/format";
 import type { ProducerReportRow, ReportSummary } from "@/lib/reports";
+import { intlLocale } from "@/i18n/config";
+import { filterSummary, type ExportLanguage, type ReportFilters } from "./letterhead";
 
 const BRAND_BLUE = "0047BA";
 const BRAND_BLUE_LIGHT = "E8F0FE";
@@ -12,13 +14,15 @@ const PCT_FMT = "0.0%";
 export async function generateExcel(
   rows: ProducerReportRow[],
   summary: ReportSummary,
-  filters: { from?: string; to?: string; producer?: string; status?: string },
+  filters: ReportFilters,
+  lang: ExportLanguage,
 ): Promise<Buffer> {
+  const { t, locale } = lang;
   const wb = new ExcelJS.Workbook();
   wb.creator = "AP Plus IBS";
   wb.created = new Date();
 
-  const ws = wb.addWorksheet("Sales Report");
+  const ws = wb.addWorksheet(t("reports.title"), { views: [{ rightToLeft: locale === "ar" }] });
 
   // -- Column widths
   ws.columns = [
@@ -37,7 +41,7 @@ export async function generateExcel(
   // -- Letterhead
   ws.mergeCells("A1:J1");
   const titleRow = ws.getRow(1);
-  titleRow.getCell(1).value = "AP Plus Insurance Brokerage";
+  titleRow.getCell(1).value = t("export.company");
   titleRow.getCell(1).font = { name: "Arial", bold: true, size: 14, color: { argb: `FF${BRAND_BLUE}` } };
   titleRow.getCell(1).alignment = { horizontal: "center" };
   titleRow.height = 30;
@@ -45,36 +49,43 @@ export async function generateExcel(
   const subtitleRowNum = 2;
   ws.mergeCells(`A${subtitleRowNum}:J${subtitleRowNum}`);
   const subtitleRow = ws.getRow(subtitleRowNum);
-  subtitleRow.getCell(1).value = "Sales Report";
+  subtitleRow.getCell(1).value = t("export.producerReportTitle");
   subtitleRow.getCell(1).font = { name: "Arial", bold: true, size: 12, color: { argb: `FF${BRAND_BLUE}` } };
   subtitleRow.getCell(1).alignment = { horizontal: "center" };
   subtitleRow.height = 22;
 
   // -- Filter info row
-  const filterParts: string[] = [];
-  if (filters.from || filters.to)
-    filterParts.push(`Date: ${filters.from ?? "start"} to ${filters.to ?? "present"}`);
-  if (filters.producer) filterParts.push(`Producer: ${filters.producer}`);
-  if (filters.status) filterParts.push(`Status: ${filters.status}`);
+  const filterText = filterSummary(filters, lang);
 
   const filterRowNum = subtitleRowNum + 1;
-  if (filterParts.length > 0) {
+  {
     ws.mergeCells(`A${filterRowNum}:J${filterRowNum}`);
     const filterRow = ws.getRow(filterRowNum);
-    filterRow.getCell(1).value = filterParts.join("  |  ");
+    filterRow.getCell(1).value = filterText;
     filterRow.getCell(1).font = { name: "Arial", size: 9, italic: true, color: { argb: "FF666666" } };
     filterRow.getCell(1).alignment = { horizontal: "center" };
   }
 
   ws.mergeCells(`A${filterRowNum + 1}:J${filterRowNum + 1}`);
   const dateRow = ws.getRow(filterRowNum + 1);
-  dateRow.getCell(1).value = `Generated: ${new Date().toLocaleDateString("en-SA")}`;
+  dateRow.getCell(1).value = t("export.generated", { date: new Date().toLocaleDateString(intlLocale(locale)) });
   dateRow.getCell(1).font = { name: "Arial", size: 8, color: { argb: "FF999999" } };
-  dateRow.getCell(1).alignment = { horizontal: "right" };
+  dateRow.getCell(1).alignment = { horizontal: locale === "ar" ? "left" : "right" };
 
   // -- Header row
   const headerRowNum = filterRowNum + 3;
-  const headers = ["Producer", "Leads", "BOR", "Secured", "Pending", "Lost", "Secured Premium", "Total Premium", "Target", "Achievement"];
+  const headers = [
+    t("reports.colProducer"),
+    t("reports.colLeads"),
+    t("reports.colBor"),
+    t("status.Secured"),
+    t("status.Pending"),
+    t("status.Lost"),
+    t("reports.colSecuredPremium"),
+    t("reports.colTotalPremium"),
+    t("reports.colTarget"),
+    t("reports.colAchievement"),
+  ];
   const headerRow = ws.getRow(headerRowNum);
   headers.forEach((h, i) => {
     const cell = headerRow.getCell(i + 1);
@@ -119,7 +130,7 @@ export async function generateExcel(
   // -- Summary row
   const summaryRowNum = headerRowNum + 1 + rows.length + 1;
   const sRow = ws.getRow(summaryRowNum);
-  sRow.getCell(1).value = "TOTAL";
+  sRow.getCell(1).value = t("export.total");
   sRow.getCell(2).value = summary.totalLeads;
   sRow.getCell(3).value = summary.totalBor;
   sRow.getCell(4).value = summary.totalSecured;
@@ -147,7 +158,7 @@ export async function generateExcel(
   // -- Print setup
   ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
   ws.headerFooter = {
-    oddFooter: "&LAP Plus Insurance Brokerage&C&P of &N&R&D",
+    oddFooter: `&L${t("export.company")}&C&P / &N&R&D`,
   };
 
   const buf = await wb.xlsx.writeBuffer();

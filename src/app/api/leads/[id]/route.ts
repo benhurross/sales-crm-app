@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
 import { notifyManagers, securedColumns } from "@/server/wins";
+import { apiError } from "@/server/api-error";
 
 async function canAccessLead(userId: string, role: string | null | undefined, leadId: number) {
   if (hasRole(role, "manager")) return true;
@@ -24,29 +25,29 @@ async function canAccessLead(userId: string, role: string | null | undefined, le
 
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/leads/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
 
   const { id } = await ctx.params;
   const numId = Number(id);
 
   if (!(await canAccessLead(session.user.id, session.user.role, numId)))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const [row] = await db.select().from(schema.lead).where(eq(schema.lead.id, numId)).limit(1);
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
 
   return Response.json(row);
 }
 
 export async function PUT(request: NextRequest, ctx: RouteContext<"/api/leads/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
 
   const { id } = await ctx.params;
   const numId = Number(id);
 
   if (!(await canAccessLead(session.user.id, session.user.role, numId)))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { commission, currentInsurerId, borTimestamp, quoteTimestamp, comments, prospectClientId, ...rest } = await request.json();
 
@@ -74,7 +75,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/leads/[i
     .where(eq(schema.lead.id, numId))
     .returning();
 
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
   if (row.status === "Secured" && existing?.status !== "Secured") notifyManagers([row.id]);
 
   if (oldProspectId && oldProspectId !== newProspectId) {
@@ -89,17 +90,17 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/leads/[i
 
 export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/leads/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
 
   const { id } = await ctx.params;
   const numId = Number(id);
 
   if (!(await canAccessLead(session.user.id, session.user.role, numId)))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const [row] = await db.delete(schema.lead).where(eq(schema.lead.id, numId)).returning();
 
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
 
   if (row.prospectClientId) {
     await db.update(schema.prospectClient).set({ status: "prospect", updatedAt: new Date() }).where(eq(schema.prospectClient.id, row.prospectClientId));

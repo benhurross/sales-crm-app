@@ -3,10 +3,11 @@ import { hasRole } from "@/lib/permissions";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 export async function GET(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
 
   const rows = await db
     .select()
@@ -18,12 +19,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "admin"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { name } = await request.json();
-  if (!name?.trim()) return Response.json({ error: "Name is required" }, { status: 400 });
+  if (!name?.trim()) return apiError(request, "nameRequired", 400);
 
   const existing = await db
     .select({ id: schema.insuranceCompany.id })
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     .where(eq(schema.insuranceCompany.name, name.trim()))
     .limit(1);
   if (existing.length)
-    return Response.json({ error: "Insurance company already exists" }, { status: 409 });
+    return apiError(request, "insurerExists", 409);
 
   const [row] = await db
     .insert(schema.insuranceCompany)

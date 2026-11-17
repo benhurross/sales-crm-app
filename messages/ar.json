@@ -56,7 +56,8 @@
     },
     "signOut": "تسجيل الخروج",
     "soundOff": "صوت الاحتفال: متوقف",
-    "soundOn": "صوت الاحتفال: مفعّل"
+    "soundOn": "صوت الاحتفال: مفعّل",
+    "myBadges": "أوسمتي"
   },
   "status": {
     "Secured": "مُبرمة",
@@ -178,7 +179,9 @@
       "personalBest": "أكبر صفقة في سجلك حتى الآن",
       "targetReached": "حققت هدفك السنوي",
       "targetPassed": "تجاوزت {value}% من هدفك السنوي",
-      "weekStreak": "{value} صفقات هذا الأسبوع"
+      "weekStreak": "{value} صفقات هذا الأسبوع",
+      "firstEver": "أول صفقة لك على الإطلاق. أهلًا بك في لوحة الإنجازات!",
+      "fiveThisMonth": "خمس صفقات هذا الشهر: حصلت على وسام شهر الخمس صفقات"
     },
     "everyWinCounts": "كل إنجاز له قيمته. الفريق كله يحتفل معك.",
     "nextWin": "الإنجاز التالي ({count} متبقية)",
@@ -326,7 +329,8 @@
     "added": "تمت إضافة المندوب",
     "updated": "تم تحديث بيانات المندوب",
     "deleted": "تم حذف المندوب",
-    "confirmDelete": "هل تريد حذف هذا المندوب؟"
+    "confirmDelete": "هل تريد حذف هذا المندوب؟",
+    "colBadges": "الأوسمة"
   },
   "settings": {
     "title": "الإعدادات",
@@ -370,5 +374,97 @@
     "updated": "تم تحديث شركة التأمين",
     "deleted": "تم حذف شركة التأمين",
     "confirmDelete": "هل تريد حذف شركة التأمين هذه؟"
+  },
+  "errors": {
+    "unauthorized": "يرجى تسجيل الدخول مرة أخرى.",
+    "forbidden": "ليست لديك صلاحية للقيام بذلك.",
+    "notFound": "غير موجود.",
+    "nameRequired": "الاسم مطلوب.",
+    "producerRequired": "المندوب مطلوب.",
+    "noProducerProfile": "حسابك غير مرتبط بسجل مندوب.",
+    "idsAndStatusRequired": "اختر الفرص والحالة.",
+    "selfKudos": "لا يمكنك تهنئة نفسك.",
+    "winNotFound": "لم يتم العثور على هذا الإنجاز.",
+    "userNotFound": "المستخدم غير موجود.",
+    "producerCodeExists": "رمز المندوب هذا مستخدم بالفعل.",
+    "nameEmailPasswordRequired": "الاسم والبريد الإلكتروني وكلمة المرور مطلوبة.",
+    "missingFields": "يرجى تعبئة الحقول المطلوبة.",
+    "invalidStatus": "حالة غير صالحة.",
+    "insurerExists": "شركة التأمين هذه موجودة بالفعل.",
+    "emailExists": "هذا البريد الإلكتروني مستخدم بالفعل.",
+    "codeAndNameRequired": "الرمز والاسم مطلوبان.",
+    "clientNameRequired": "اسم العميل مطلوب.",
+    "insurerInUse": "لا يمكن حذف شركة التأمين لأنها مرتبطة بفرص بيعية.",
+    "cannotDeleteSelf": "لا يمكنك حذف حسابك.",
+    "producerHasRecords": "لا يمكن الحذف: لدى هذا المندوب {leads} فرصة و{prospects} عميل مرتقب. انقلها إلى مندوب آخر أولًا.",
+    "pdfFailed": "تعذّر تصدير ملف PDF: {reason}"
+  },
+  "export": {
+    "company": "إيه بي بلس لوساطة التأمين",
+    "generated": "أُنشئ في {date}",
+    "page": "صفحة {page} من {pages}",
+    "allFilters": "جميع المندوبين، جميع التواريخ",
+    "filterDate": "التاريخ: من {from} إلى {to}",
+    "start": "البداية",
+    "present": "اليوم",
+    "filterProducer": "المندوب: {name}",
+    "filterStatus": "الحالة: {status}",
+    "total": "الإجمالي",
+    "producerReportTitle": "تقرير المبيعات حسب المندوب",
+    "performanceTitle": "تقرير أداء المبيعات",
+    "keyMetrics": "المؤشرات الرئيسية",
+    "performance": "الأداء",
+    "pipelineAndMix": "الصفقات والتوزيع",
+    "highlights": "أبرز النقاط",
+    "targetGaugeSubtitle": "المُبرم مقابل الهدف السنوي؛ تشير العلامة إلى الوتيرة حتى تاريخه",
+    "days": "{range} يومًا",
+    "insightTarget": "بلغت الأقساط المُبرمة {secured}، أي {achievement} من الهدف السنوي {target}؛ وقد مضى {pace} من العام ({status}).",
+    "insightPipeline": "ما زالت {count} فرصة بقيمة {amount} مفتوحة؛ منها {stale} ({staleAmount}) مفتوحة منذ أكثر من 90 يومًا.",
+    "insightWinRate": "نسبة الفوز في الفرص المحسومة {rate} ({won} رابحة، {lost} خاسرة)، بمتوسط صفقة مُبرمة قدره {deal}.",
+    "insightTopProducer": "المندوب الأعلى في الأقساط المُبرمة: {name} بقيمة {amount} ({achievement} من الهدف).",
+    "insightCob": "فئة {cob} هي الأكبر بأقساط تقديرية قدرها {amount}.",
+    "insightConversion": "تحوّل {rate} فقط من أصل {total, number} عميل مرتقب إلى فرص بيعية."
+  },
+  "email": {
+    "subject": "صفقة مُبرمة: {producer} أبرم صفقة {client}",
+    "heading": "{producer} أبرم صفقة",
+    "body": "أبرم {producer} للتو صفقة {client} ({kind}) بقيمة {amount}.",
+    "client": "العميل",
+    "premium": "القسط",
+    "class": "الفئة",
+    "amount": "{amount} ريال",
+    "congratulate": "خصص لحظة لتهنئته.",
+    "open": "افتح نظام المبيعات"
+  },
+  "badges": {
+    "firstWin": {
+      "name": "الصفقة الأولى",
+      "description": "أبرم أول صفقة"
+    },
+    "hatTrick": {
+      "name": "ثلاثية",
+      "description": "ثلاث صفقات في أسبوع واحد"
+    },
+    "fiveDealMonth": {
+      "name": "شهر الخمس صفقات",
+      "description": "خمس صفقات في شهر واحد"
+    },
+    "targetReached": {
+      "name": "حقق الهدف",
+      "description": "بلغت الأقساط المُبرمة الهدف السنوي"
+    },
+    "dealOfQuarter": {
+      "name": "صفقة الربع {period}",
+      "description": "أكبر صفقة للفريق في ذلك الربع"
+    }
+  },
+  "winOfWeek": {
+    "title": "صفقة الأسبوع",
+    "thisWeek": "هذا الأسبوع",
+    "lastWeek": "الأسبوع الماضي",
+    "by": "بواسطة {name}",
+    "byYou": "بواسطتك",
+    "kudos": "{count, plural, zero {لا تهاني} one {تهنئة واحدة} two {تهنئتان} few {# تهانٍ} many {# تهنئة} other {# تهنئة}}",
+    "none": "لا توجد صفقات هذا الأسبوع أو الأسبوع الماضي. قد تكون صفقتك القادمة هي صفقة الأسبوع."
   }
 }

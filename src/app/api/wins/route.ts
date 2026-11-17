@@ -3,11 +3,12 @@ import { hasRole } from "@/lib/permissions";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 /** Recent wins for the whole team. Salesmen see who won which client, but not the amount. */
 export async function GET(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   const showAmounts = hasRole(session.user.role, "manager");
 
   const wins = await db

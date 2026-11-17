@@ -2,10 +2,11 @@ import { type AnyColumn, and, asc, count, eq, getTableColumns, ilike, or, sql } 
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 export async function GET(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
 
   let producerFilter: number | undefined;
   if (session.user.role === "salesman") {
@@ -77,13 +78,13 @@ const SORT_COLUMNS: Record<string, AnyColumn> = {
 
 export async function POST(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
 
   const body = await request.json();
   const { producerId, clientName, premiums, month, currentInsurerId, lob } = body;
 
   if (!clientName)
-    return Response.json({ error: "Client name is required" }, { status: 400 });
+    return apiError(request, "clientNameRequired", 400);
 
   let resolvedProducerId = producerId;
   if (session.user.role === "salesman") {
@@ -92,11 +93,11 @@ export async function POST(request: Request) {
       .from(schema.producer)
       .where(eq(schema.producer.userId, session.user.id))
       .limit(1);
-    if (!myProducer) return Response.json({ error: "No producer profile linked" }, { status: 400 });
+    if (!myProducer) return apiError(request, "noProducerProfile", 400);
     resolvedProducerId = myProducer.id;
   }
 
-  if (!resolvedProducerId) return Response.json({ error: "Producer is required" }, { status: 400 });
+  if (!resolvedProducerId) return apiError(request, "producerRequired", 400);
 
   const [row] = await db
     .insert(schema.prospectClient)

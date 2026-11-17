@@ -4,12 +4,13 @@ import { hasRole } from "@/lib/permissions";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 export async function PUT(request: NextRequest, ctx: RouteContext<"/api/producers/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "manager"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
   const { email, title, joinDate, userId, ...rest } = await request.json();
@@ -27,15 +28,15 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/producer
     .where(eq(schema.producer.id, Number(id)))
     .returning();
 
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
   return Response.json(row);
 }
 
 export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/producers/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "admin"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
   const producerId = Number(id);
@@ -45,13 +46,10 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/produ
     db.select({ prospects: count() }).from(schema.prospectClient).where(eq(schema.prospectClient.producerId, producerId)),
   ]);
   if (leads || prospects)
-    return Response.json(
-      { error: `Cannot delete: this salesman still has ${leads} leads and ${prospects} prospects. Reassign them first.` },
-      { status: 409 },
-    );
+    return apiError(request, "producerHasRecords", 409, { leads, prospects });
 
   const [row] = await db.delete(schema.producer).where(eq(schema.producer.id, producerId)).returning();
 
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
   return Response.json({ ok: true });
 }

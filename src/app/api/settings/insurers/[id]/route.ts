@@ -4,17 +4,18 @@ import { hasRole } from "@/lib/permissions";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 export async function PUT(request: NextRequest, ctx: RouteContext<"/api/settings/insurers/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "admin"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
   const { name } = await request.json();
 
-  if (!name?.trim()) return Response.json({ error: "Name is required" }, { status: 400 });
+  if (!name?.trim()) return apiError(request, "nameRequired", 400);
 
   const [row] = await db
     .update(schema.insuranceCompany)
@@ -22,15 +23,15 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/settings
     .where(eq(schema.insuranceCompany.id, Number(id)))
     .returning();
 
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
   return Response.json(row);
 }
 
 export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/settings/insurers/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "admin"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
 
@@ -40,13 +41,13 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/setti
     .where(eq(schema.lead.currentInsurerId, Number(id)))
     .limit(1);
   if (refs.length)
-    return Response.json({ error: "Cannot delete: insurer is referenced by leads" }, { status: 409 });
+    return apiError(request, "insurerInUse", 409);
 
   const [row] = await db
     .delete(schema.insuranceCompany)
     .where(eq(schema.insuranceCompany.id, Number(id)))
     .returning();
 
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
   return Response.json({ ok: true });
 }

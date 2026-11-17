@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useCurrentUser } from "@/components/app-shell/current-user";
 import { DataTable } from "@/components/data-table";
+import { BadgeIcons, useHighlights } from "@/components/celebration/badges";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export default function SalesmenPage() {
   const queryClient = useQueryClient();
   const t = useTranslations("salesmen");
   const tc = useTranslations("common");
+  const { data: highlights } = useHighlights();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Producer | null>(null);
 
@@ -108,6 +110,12 @@ export default function SalesmenPage() {
       { accessorKey: "name", header: t("colName") },
       { accessorKey: "email", header: t("colEmail"), cell: ({ getValue }) => (getValue() as string) || "--" },
       { accessorKey: "region", header: t("colRegion"), size: 100 },
+      {
+        id: "badges",
+        header: t("colBadges"),
+        enableSorting: false,
+        cell: ({ row }) => <BadgeIcons badges={highlights?.badges[row.original.id]} />,
+      },
       { accessorKey: "title", header: t("colTitle"), cell: ({ getValue }) => (getValue() as string) || "--" },
       {
         accessorKey: "employmentStatus",
@@ -145,7 +153,7 @@ export default function SalesmenPage() {
           ]
         : []),
     ],
-    [canEdit, user.role, deleteMutation, t, tc],
+    [canEdit, user.role, deleteMutation, t, tc, highlights],
   );
 
   return (

@@ -18,6 +18,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { useCurrentUser } from "@/components/app-shell/current-user";
+import { BadgeIcons, useHighlights, WinOfTheWeek } from "@/components/celebration/badges";
 import { RecentWins } from "@/components/celebration/recent-wins";
 import { PageHeader } from "@/components/page-header";
 import { Progress } from "@/components/ui/progress";
@@ -65,6 +66,7 @@ export default function DashboardPage() {
   const tc = useTranslations("common");
   const tCob = useTranslations("cob");
   const monthLabel = useMonthLabel();
+  const { data: highlights } = useHighlights();
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["dashboard"],
@@ -238,9 +240,12 @@ export default function DashboardPage() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title={t("winsTitle")} subtitle={t("winsSubtitle")} className="scroll-mt-20" id="recent-wins">
-          <RecentWins />
-        </ChartCard>
+        <div className="grid min-w-0 content-start gap-4">
+          <WinOfTheWeek />
+          <ChartCard title={t("winsTitle")} subtitle={t("winsSubtitle")} className="scroll-mt-20" id="recent-wins">
+            <RecentWins />
+          </ChartCard>
+        </div>
       </div>
 
       {/* Producers and lead volume */}
@@ -260,11 +265,16 @@ export default function DashboardPage() {
                   <th className="w-[22%] py-2 text-start font-medium">{t("colAchievement")}</th>
                 </tr>
               </thead>
-              <tbody className="tabular-nums">
+              <tbody className="tabular-nums whitespace-nowrap">
                 {leaderboard.map((p, i) => (
                   <tr key={p.id} className="border-b border-border/50 last:border-0 hover:bg-accent/40">
                     <td className="py-2 pe-2 text-muted-foreground">{i + 1}</td>
-                    <td className="max-w-[160px] truncate py-2 pe-2 font-medium" title={p.name}>{p.name}</td>
+                    <td className="py-2 pe-2 font-medium">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 max-w-[160px] truncate" title={p.name}>{p.name}</span>
+                        <BadgeIcons badges={highlights?.badges[p.id]} className="shrink-0 flex-nowrap" />
+                      </span>
+                    </td>
                     <td className="py-2 pe-2 text-end">{p.leads}</td>
                     <td className="py-2 pe-2 text-end">{p.closed > 0 ? formatPercent(p.winRate) : "--"}</td>
                     <td className="py-2 pe-2 text-end">{formatCompact(p.pipeline)}</td>

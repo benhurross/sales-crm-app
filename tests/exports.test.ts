@@ -4,7 +4,9 @@ import { RIYAL } from "@/lib/format";
 import { buildProducerReport, summarizeReport } from "@/lib/reports";
 import type { DashboardData } from "@/server/dashboard-data";
 import { buildDashboardHtml } from "@/server/exports/dashboard-pdf";
-import { esc, filterSummary } from "@/server/exports/letterhead";
+import ExcelJS from "exceljs";
+import { generateExcel } from "@/server/exports/excel";
+import { esc, exportLanguage, filterSummary } from "@/server/exports/letterhead";
 import { buildProducerHtml } from "@/server/exports/pdf";
 
 function lead(overrides: Partial<DashboardLead>): DashboardLead {
@@ -40,9 +42,13 @@ const data: DashboardData = {
   ],
 };
 
+const EN = exportLanguage("en");
+const AR = exportLanguage("ar");
+const JUNE = new Date(2026, 5, 30);
+
 describe("buildDashboardHtml", () => {
   it("shows names, not producer codes, and escapes them", async () => {
-    const html = await buildDashboardHtml(data, {}, new Date(2026, 5, 30));
+    const html = await buildDashboardHtml(data, {}, JUNE, EN);
     expect(html).toContain("Alice");
     expect(html).toContain("Bob &#60;B&#62;");
     expect(html).not.toContain("J-101");
@@ -50,7 +56,7 @@ describe("buildDashboardHtml", () => {
   });
 
   it("embeds the logo and the Riyal font so the sign prints on any machine", async () => {
-    const html = await buildDashboardHtml(data, {}, new Date(2026, 5, 30));
+    const html = await buildDashboardHtml(data, {}, JUNE, EN);
     expect(html).toContain('src="data:image/svg+xml;base64,');
     expect(html).toContain('font-family: "Saudi Riyal"');
     expect(html).toContain("unicode-range: U+20C1");
@@ -58,7 +64,7 @@ describe("buildDashboardHtml", () => {
   });
 
   it("applies the producer filter to leads, prospects and target", async () => {
-    const html = await buildDashboardHtml(data, { producerId: 2, producer: "Bob <B>" }, new Date(2026, 5, 30));
+    const html = await buildDashboardHtml(data, { producerId: 2, producer: "Bob <B>" }, JUNE, EN);
     expect(html).toContain("Producer: Bob &#60;B&#62;");
     expect(html).not.toContain(">Alice<");
     // Bob: 5 prospects, 1 lead, target 200K
@@ -68,7 +74,7 @@ describe("buildDashboardHtml", () => {
   });
 
   it("applies the date filter", async () => {
-    const html = await buildDashboardHtml(data, { from: "2026-04-01" }, new Date(2026, 5, 30));
+    const html = await buildDashboardHtml(data, { from: "2026-04-01" }, JUNE, EN);
     expect(html).toMatch(/Leads<\/div><div class="value">1</);
   });
 });
@@ -79,17 +85,54 @@ describe("buildProducerHtml", () => {
       data.leads.map((l) => ({ ...l, bor: l.bor ?? false })),
       data.producers,
     );
-    const html = await buildProducerHtml(rows, summarizeReport(rows), {});
+    const html = await buildProducerHtml(rows, summarizeReport(rows), {}, EN);
     expect(html).not.toContain(">Code<");
     expect(html).not.toContain("J-101");
     expect(html).toContain("<th>Producer</th>");
   });
 });
 
+describe("Arabic reports", () => {
+  it("writes the performance report right to left with the Arabic font embedded", async () => {
+    const html = await buildDashboardHtml(data, {}, JUNE, AR);
+    expect(html).toContain('<html lang="ar" dir="rtl">');
+    expect(html).toContain('font-family: "IBM Plex Sans Arabic"');
+    expect(html).toContain("تقرير أداء المبيعات");
+    expect(html).toContain("المؤشرات الرئيسية");
+    expect(html).toContain("طبي"); // Medical
+    expect(html).not.toMatch(/>(Key metrics|Highlights|Sales Funnel)</);
+  });
+
+  it("leaves the Arabic font out of English reports", async () => {
+    const html = await buildDashboardHtml(data, {}, JUNE, EN);
+    expect(html).toContain('<html lang="en" dir="ltr">');
+    expect(html).not.toContain('font-family: "IBM Plex Sans Arabic"; src');
+  });
+
+  it("translates the producer report and its filters", async () => {
+    const rows = buildProducerReport(data.leads.map((l) => ({ ...l, bor: l.bor ?? false })), data.producers);
+    const html = await buildProducerHtml(rows, summarizeReport(rows), { status: "Secured" }, AR);
+    expect(html).toContain("<th>المندوب</th>");
+    expect(html).toContain("الإجمالي");
+    expect(html).toContain("الحالة: مُبرمة");
+  });
+
+  it("makes the Excel sheet right to left with Arabic headers", async () => {
+    const rows = buildProducerReport(data.leads.map((l) => ({ ...l, bor: l.bor ?? false })), data.producers);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(new Uint8Array(await generateExcel(rows, summarizeReport(rows), {}, AR)).buffer as ArrayBuffer);
+    const ws = wb.worksheets[0];
+    expect(ws.views[0]).toMatchObject({ rightToLeft: true });
+    expect(ws.getCell("A1").value).toBe("إيه بي بلس لوساطة التأمين");
+    const headers = (ws.getRow(6).values as unknown[]).filter(Boolean);
+    expect(headers).toContain("المندوب");
+  });
+});
+
 describe("letterhead helpers", () => {
   it("summarises filters", () => {
-    expect(filterSummary({})).toBe("All producers, all dates");
-    expect(filterSummary({ from: "2026-01-01", producer: "Alice", status: "Secured" })).toBe(
+    expect(filterSummary({}, EN)).toBe("All producers, all dates");
+    expect(filterSummary({ from: "2026-01-01", producer: "Alice", status: "Secured" }, EN)).toBe(
       "Date: 2026-01-01 to present  |  Producer: Alice  |  Status: Secured",
     );
   });

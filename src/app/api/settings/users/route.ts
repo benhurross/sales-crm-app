@@ -4,12 +4,13 @@ import { auth } from "@/server/auth";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 export async function GET(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "admin"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const users = await db
     .select({
@@ -29,14 +30,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "admin"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { name, email, password, role } = await request.json();
 
   if (!name || !email || !password)
-    return Response.json({ error: "Name, email, and password are required" }, { status: 400 });
+    return apiError(request, "nameEmailPasswordRequired", 400);
 
   const existing = await db
     .select({ id: schema.user.id })
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
     .where(eq(schema.user.email, email))
     .limit(1);
   if (existing.length)
-    return Response.json({ error: "Email already exists" }, { status: 409 });
+    return apiError(request, "emailExists", 409);
 
   const created = await auth.api.createUser({
     body: { name, email, password, role: role || "salesman" },

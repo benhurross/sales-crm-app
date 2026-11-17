@@ -2,10 +2,11 @@ import { eq, ilike, and } from "drizzle-orm";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 export async function GET(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
 
   const url = new URL(request.url);
   const q = url.searchParams.get("q")?.trim();

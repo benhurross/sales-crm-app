@@ -12,24 +12,26 @@ import {
   type StatusBreakdown,
 } from "@/lib/dashboard";
 import { formatAmount, formatCompact, formatPercent, RIYAL } from "@/lib/format";
+import { intlLocale } from "@/i18n/config";
 import type { DashboardData } from "@/server/dashboard-data";
-import { BRAND_BLUE, esc, letterheadDocument, renderPdf, type ReportFilters } from "./letterhead";
+import { BRAND_BLUE, esc, letterheadDocument, renderPdf, type ExportLanguage, type ReportFilters } from "./letterhead";
 
 const TEAL = "#0f9d84";
 const GRID = "#e5e9f0";
 const MUTED = "#6b7280";
 const STATUS_KEYS = [
-  { key: "secured", label: "Secured", color: STATUS_COLORS.Secured },
-  { key: "pending", label: "Pending", color: STATUS_COLORS.Pending },
-  { key: "lost", label: "Lost", color: STATUS_COLORS.Lost },
+  { key: "secured", status: "Secured", color: STATUS_COLORS.Secured },
+  { key: "pending", status: "Pending", color: STATUS_COLORS.Pending },
+  { key: "lost", status: "Lost", color: STATUS_COLORS.Lost },
 ] as const;
 
 const whole = (v: number) => formatAmount(Math.round(v));
 const axisAmount = (v: number) => formatCompact(v).replace(`${RIYAL} `, "");
 
+let monthLocale = "en-GB";
 function monthLabel(key: string) {
   const [y, m] = key.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleString("en", { month: "short", year: "2-digit" });
+  return new Date(y, m - 1, 1).toLocaleString(monthLocale, { month: "short", year: "2-digit" });
 }
 
 /** A rounded axis maximum with four even steps. */
@@ -161,13 +163,13 @@ const CSS = `
   .funnel-track { height: 12px; background: #f1f4f9; border-radius: 3px; }
   .funnel-fill { height: 100%; border-radius: 3px; background: ${BRAND_BLUE}; }
   .legend { display: flex; gap: 12px; justify-content: center; font-size: 7.5px; color: #374151; margin-top: 4px; }
-  .legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: -0.5px; }
-  .insights { margin: 0; padding-left: 14px; font-size: 8.5px; line-height: 1.55; }
+  .legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-inline-end: 4px; vertical-align: -0.5px; }
+  .insights { margin: 0; padding-inline-start: 14px; font-size: 8.5px; line-height: 1.55; }
   table { width: 100%; border-collapse: collapse; }
   thead { display: table-header-group; }
   tr { break-inside: avoid; }
-  th { background: ${BRAND_BLUE}; color: #fff; font-size: 7.5px; padding: 5px; text-align: right; font-weight: 600; }
-  th:nth-child(-n+2), td:nth-child(-n+2) { text-align: left; }
+  th { background: ${BRAND_BLUE}; color: #fff; font-size: 7.5px; padding: 5px; text-align: end; font-weight: 600; }
+  th:nth-child(-n+2), td:nth-child(-n+2) { text-align: start; }
   td { font-size: 8px; padding: 4px 5px; border-bottom: 1px solid ${GRID}; }
   tbody tr:nth-child(even) td { background: #f8fafc; }
   .ach { display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
@@ -178,11 +180,14 @@ const CSS = `
 type DashboardFilters = ReportFilters & { producerId?: number };
 
 /** Portrait PDF mirroring the dashboard: KPIs, gauges, funnel, trends, mix, aging and the producer leaderboard. */
-export async function generateDashboardPdf(data: DashboardData, filters: DashboardFilters): Promise<Buffer> {
-  return renderPdf(await buildDashboardHtml(data, filters, new Date()), false);
+export async function generateDashboardPdf(data: DashboardData, filters: DashboardFilters, lang: ExportLanguage): Promise<Buffer> {
+  return renderPdf(await buildDashboardHtml(data, filters, new Date(), lang), false, lang);
 }
 
-export async function buildDashboardHtml(data: DashboardData, filters: DashboardFilters, today: Date): Promise<string> {
+export async function buildDashboardHtml(data: DashboardData, filters: DashboardFilters, today: Date, lang: ExportLanguage): Promise<string> {
+  const { t } = lang;
+  monthLocale = intlLocale(lang.locale);
+  const statusLegend = STATUS_KEYS.map((s) => ({ label: t(`status.${s.status}`), color: s.color }));
   const leads = data.leads.filter(
     (l) =>
       (!filters.producerId || l.producerId === filters.producerId) &&
@@ -213,11 +218,11 @@ export async function buildDashboardHtml(data: DashboardData, filters: Dashboard
     }<div class="note">${note}</div></div>`;
 
   const funnel = [
-    { name: "Prospects", count: prospects.total },
-    { name: "Leads", count: k.totalLeads },
-    { name: "BOR received", count: k.bor },
-    { name: "Quoted", count: k.quoted },
-    { name: "Secured", count: k.secured },
+    { name: t("dashboard.funnelProspects"), count: prospects.total },
+    { name: t("dashboard.funnelLeads"), count: k.totalLeads },
+    { name: t("dashboard.funnelBor"), count: k.bor },
+    { name: t("dashboard.funnelQuoted"), count: k.quoted },
+    { name: t("dashboard.funnelSecured"), count: k.secured },
   ];
   const funnelMax = Math.max(1, ...funnel.map((f) => f.count));
 
@@ -225,54 +230,56 @@ export async function buildDashboardHtml(data: DashboardData, filters: Dashboard
   const biggestCob = [...cob].sort((a, b) => b.secured + b.pending + b.lost - (a.secured + a.pending + a.lost))[0];
   const stale = aging[aging.length - 1];
   const insights = [
-    `Secured premium is ${whole(k.securedPremium)}, ${formatPercent(achievement)} of the ${whole(target)} annual target; ${formatPercent(pace)} of the year has passed (${status.label.toLowerCase()}).`,
-    `${k.pending} leads worth ${whole(k.pendingPremium)} are still open; ${stale.count} of them (${whole(stale.value)}) have been open for more than 90 days.`,
-    `Win rate on decided leads is ${formatPercent(k.winRate)} (${k.secured} won, ${k.lost} lost), with an average secured deal of ${whole(k.avgDealSize)}.`,
-    topProducer ? `Top producer by secured premium: ${esc(topProducer.name)} with ${whole(topProducer.secured)} (${formatPercent(topProducer.achievement)} of target).` : "",
-    biggestCob ? `${esc(biggestCob.name)} is the largest class of business at ${whole(biggestCob.secured + biggestCob.pending + biggestCob.lost)} in estimated premium.` : "",
-    `Only ${formatPercent(conversion)} of ${prospects.total.toLocaleString()} prospects have become leads.`,
-  ].filter(Boolean);
+    t("export.insightTarget", { secured: whole(k.securedPremium), achievement: formatPercent(achievement), target: whole(target), pace: formatPercent(pace), status: t(`dashboard.pace.${status.tone}`) }),
+    t("export.insightPipeline", { count: k.pending, amount: whole(k.pendingPremium), stale: stale.count, staleAmount: whole(stale.value) }),
+    t("export.insightWinRate", { rate: formatPercent(k.winRate), won: k.secured, lost: k.lost, deal: whole(k.avgDealSize) }),
+    topProducer ? t("export.insightTopProducer", { name: topProducer.name, amount: whole(topProducer.secured), achievement: formatPercent(topProducer.achievement) }) : "",
+    biggestCob ? t("export.insightCob", { cob: t(`cob.${biggestCob.name}`), amount: whole(biggestCob.secured + biggestCob.pending + biggestCob.lost) }) : "",
+    t("export.insightConversion", { rate: formatPercent(conversion), total: prospects.total }),
+  ]
+    .filter(Boolean)
+    .map(esc);
 
   const body = `
-  <div class="section-title">Key metrics</div>
+  <div class="section-title">${t("export.keyMetrics")}</div>
   <div class="kpis">
-    ${kpi("Prospects", prospects.total.toLocaleString(), `${formatCompact(prospects.premiums)} potential premium`)}
-    ${kpi("Converted to Leads", prospects.converted.toLocaleString(), `${(prospects.total - prospects.converted).toLocaleString()} not yet converted`)}
-    ${kpi("Conversion Rate", formatPercent(conversion), "prospects to leads")}
-    ${kpi("Leads", k.totalLeads.toLocaleString(), `${k.newLeads} new, ${k.renewalLeads} renewal`)}
-    ${kpi("Total Premium", formatCompact(k.totalPremium), "estimated, all leads")}
-    ${kpi("Open Pipeline", formatCompact(k.pendingPremium), `${k.pending} pending leads`)}
-    ${kpi("Secured", formatCompact(k.securedPremium), `${k.secured} leads won`)}
-    ${kpi("Lost", formatCompact(k.lostPremium), `${k.lost} leads lost`)}
-    ${kpi("Target Achievement", formatPercent(achievement), `of ${formatCompact(target)} annual target`, achievement)}
-    ${kpi("Win Rate", formatPercent(k.winRate), "secured of decided leads", k.winRate)}
-    ${kpi("Success Rate", formatPercent(k.successRate), "secured of all leads", k.successRate)}
-    ${kpi("Avg Deal Size", formatCompact(k.avgDealSize), "per secured lead")}
-    ${kpi("Commission Earned", formatCompact(k.commissionEarned), `${formatPercent(k.securedPremium > 0 ? k.commissionEarned / k.securedPremium : 0)} of secured premium`)}
-    ${kpi("Quote Rate", formatPercent(k.quoteRate), `${k.quoted} leads quoted`)}
-    ${kpi("BOR Rate", formatPercent(k.borRate), `${k.bor} BORs received`)}
-    ${kpi("Avg Days to Quote", k.avgDaysToQuote === null ? "--" : k.avgDaysToQuote.toFixed(0), "from start of work")}
+    ${kpi(t("dashboard.kpiProspects"), prospects.total.toLocaleString(), t("dashboard.kpiProspectsSub", { amount: formatCompact(prospects.premiums) }))}
+    ${kpi(t("dashboard.kpiConverted"), prospects.converted.toLocaleString(), t("dashboard.kpiConvertedSub", { count: prospects.total - prospects.converted }))}
+    ${kpi(t("dashboard.kpiConversion"), formatPercent(conversion), t("dashboard.kpiConversionSub"))}
+    ${kpi(t("dashboard.kpiLeads"), k.totalLeads.toLocaleString(), t("dashboard.kpiLeadsSub", { count: k.renewalLeads }))}
+    ${kpi(t("dashboard.kpiTotalPremium"), formatCompact(k.totalPremium), t("dashboard.kpiTotalPremiumSub"))}
+    ${kpi(t("dashboard.kpiPipeline"), formatCompact(k.pendingPremium), t("dashboard.kpiPipelineSub", { count: k.pending }))}
+    ${kpi(t("dashboard.kpiSecured"), formatCompact(k.securedPremium), t("dashboard.kpiSecuredSub", { count: k.secured }))}
+    ${kpi(t("dashboard.kpiLost"), formatCompact(k.lostPremium), t("dashboard.kpiLostSub", { count: k.lost }))}
+    ${kpi(t("dashboard.targetTitle"), formatPercent(achievement), t("dashboard.targetSubtitle", { target: formatCompact(target) }), achievement)}
+    ${kpi(t("dashboard.winRateTitle"), formatPercent(k.winRate), t("dashboard.winRateSubtitle"), k.winRate)}
+    ${kpi(t("dashboard.kpiSuccess"), formatPercent(k.successRate), t("dashboard.kpiSuccessSub"), k.successRate)}
+    ${kpi(t("dashboard.kpiDealSize"), formatCompact(k.avgDealSize), t("dashboard.kpiDealSizeSub"))}
+    ${kpi(t("dashboard.kpiCommission"), formatCompact(k.commissionEarned), t("dashboard.kpiCommissionSub", { percent: formatPercent(k.securedPremium > 0 ? k.commissionEarned / k.securedPremium : 0) }))}
+    ${kpi(t("dashboard.kpiQuoteRate"), formatPercent(k.quoteRate), t("dashboard.kpiQuoteRateSub", { count: k.quoted }))}
+    ${kpi(t("dashboard.kpiBorRate"), formatPercent(k.borRate), t("dashboard.kpiBorRateSub", { count: k.bor }))}
+    ${kpi(t("dashboard.kpiDaysToQuote"), k.avgDaysToQuote === null ? "--" : k.avgDaysToQuote.toFixed(0), t("dashboard.kpiDaysToQuoteSub"))}
   </div>
 
-  <div class="section-title">Performance</div>
+  <div class="section-title">${t("export.performance")}</div>
   <div class="grid-perf">
     <div class="card center">
-      <h3>Target Achievement</h3>
-      <div class="sub">Secured vs annual target; tick marks year-to-date pace</div>
+      <h3>${t("dashboard.targetTitle")}</h3>
+      <div class="sub">${t("export.targetGaugeSubtitle")}</div>
       ${gauge(achievement, TONE_COLORS[status.tone], pace)}
-      <div class="caption">${formatCompact(k.securedPremium)} secured</div>
-      <div class="sub">${status.label} (pace ${formatPercent(pace)})</div>
+      <div class="caption">${t("dashboard.targetCaption", { amount: formatCompact(k.securedPremium) })}</div>
+      <div class="sub">${t("dashboard.paceStatus", { status: t(`dashboard.pace.${status.tone}`), pace: formatPercent(pace) })}</div>
     </div>
     <div class="card center">
-      <h3>Win Rate</h3>
-      <div class="sub">Secured out of decided leads</div>
+      <h3>${t("dashboard.winRateTitle")}</h3>
+      <div class="sub">${t("dashboard.winRateSubtitle")}</div>
       ${gauge(k.winRate, BRAND_BLUE)}
-      <div class="caption">${k.secured} won, ${k.lost} lost</div>
-      <div class="sub">${k.pending} still open</div>
+      <div class="caption">${t("dashboard.winRateCaption", { won: k.secured, lost: k.lost })}</div>
+      <div class="sub">${t("dashboard.winRateStatus", { count: k.pending })}</div>
     </div>
     <div class="card">
-      <h3>Sales Funnel</h3>
-      <div class="sub">Count at each stage, with conversion from the stage before</div>
+      <h3>${t("dashboard.funnelTitle")}</h3>
+      <div class="sub">${t("dashboard.funnelSubtitle")}</div>
       ${funnel
         .map(
           (f, i) => `<div class="funnel-row"><span>${f.name}</span><div class="funnel-track"><div class="funnel-fill" style="width:${Math.max(1.5, (f.count / funnelMax) * 100)}%;opacity:${1 - i * 0.15}"></div></div><span class="num"><b>${f.count.toLocaleString()}</b>${
@@ -284,41 +291,41 @@ export async function buildDashboardHtml(data: DashboardData, filters: Dashboard
   </div>
 
   <div class="section card">
-    <h3>Monthly Premium by Status</h3>
-    <div class="sub">Estimated premium by the month work started</div>
+    <h3>${t("dashboard.monthlyTitle")}</h3>
+    <div class="sub">${t("dashboard.monthlySubtitle")}</div>
     ${stackedColumns(monthly, 680, 190)}
-    ${legend(STATUS_KEYS.map((s) => ({ label: s.label, color: s.color })))}
+    ${legend(statusLegend)}
   </div>
 
   <div class="page-break"></div>
-  <div class="section-title">Pipeline and mix</div>
+  <div class="section-title">${t("export.pipelineAndMix")}</div>
   <div class="grid-2">
     <div class="card">
-      <h3>Monthly Lead Volume</h3>
-      <div class="sub">New business vs renewals, by count</div>
+      <h3>${t("dashboard.volumeTitle")}</h3>
+      <div class="sub">${t("dashboard.volumeSubtitle")}</div>
       ${lineChart(volume, 330, 170)}
-      ${legend([{ label: "New", color: BRAND_BLUE }, { label: "Renewal", color: TEAL }])}
+      ${legend([{ label: t("dashboard.new"), color: BRAND_BLUE }, { label: t("dashboard.renewal"), color: TEAL }])}
     </div>
     <div class="card">
-      <h3>Premium by Class of Business</h3>
-      <div class="sub">Split by lead status</div>
-      ${horizontalBars(cob.map((c) => ({ name: c.name, segments: STATUS_KEYS.map((s) => ({ value: c[s.key], color: s.color })), label: formatCompact(c.secured + c.pending + c.lost) })), 330, 56)}
-      ${legend(STATUS_KEYS.map((s) => ({ label: s.label, color: s.color })))}
-      <h3 style="margin-top:12px">Open Pipeline Aging</h3>
-      <div class="sub">Pending premium by days since work started</div>
-      ${horizontalBars(aging.map((a, i) => ({ name: `${a.name} days`, segments: [{ value: a.value, color: `rgba(0,71,186,${0.4 + i * 0.2})` }], label: `${a.count} leads` })), 330, 56)}
+      <h3>${t("dashboard.cobTitle")}</h3>
+      <div class="sub">${t("dashboard.cobSubtitle")}</div>
+      ${horizontalBars(cob.map((c) => ({ name: t(`cob.${c.name}`), segments: STATUS_KEYS.map((s) => ({ value: c[s.key], color: s.color })), label: formatCompact(c.secured + c.pending + c.lost) })), 330, 56)}
+      ${legend(statusLegend)}
+      <h3 style="margin-top:12px">${t("dashboard.agingTitle")}</h3>
+      <div class="sub">${t("dashboard.agingSubtitle")}</div>
+      ${horizontalBars(aging.map((a, i) => ({ name: t("export.days", { range: a.name }), segments: [{ value: a.value, color: `rgba(0,71,186,${0.4 + i * 0.2})` }], label: t("dashboard.leadsCount", { count: a.count }) })), 330, 64)}
     </div>
   </div>
 
   <div class="section card">
-    <h3>Highlights</h3>
+    <h3>${t("export.highlights")}</h3>
     <ul class="insights">${insights.map((i) => `<li>${i}</li>`).join("")}</ul>
   </div>
 
-  <div class="section-title">Producer leaderboard</div>
+  <div class="section-title">${t("dashboard.leaderboardTitle")}</div>
   <table>
     <thead>
-      <tr><th>#</th><th>Producer</th><th>Leads</th><th>Win rate</th><th>Open pipeline</th><th>Secured</th><th>Target</th><th>Achievement</th></tr>
+      <tr><th>#</th>${["colProducer", "colLeads", "colWinRate", "colPipeline", "colSecured", "colTarget", "colAchievement"].map((c) => `<th>${t(`dashboard.${c}`)}</th>`).join("")}</tr>
     </thead>
     <tbody>
       ${board
@@ -338,5 +345,5 @@ export async function buildDashboardHtml(data: DashboardData, filters: Dashboard
     </tbody>
   </table>`;
 
-  return letterheadDocument({ title: "Sales Performance Report", filters, css: CSS, body });
+  return letterheadDocument({ title: t("export.performanceTitle"), filters, css: CSS, body, lang });
 }

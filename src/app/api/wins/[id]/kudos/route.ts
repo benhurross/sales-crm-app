@@ -3,11 +3,12 @@ import type { NextRequest } from "next/server";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 /** Congratulate a colleague on a win, with an optional short note. Body: { message?: string } */
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/wins/[id]/kudos">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   const leadId = Number((await ctx.params).id);
 
   const [win] = await db
@@ -16,8 +17,8 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/wins/[i
     .innerJoin(schema.producer, eq(schema.lead.producerId, schema.producer.id))
     .where(and(eq(schema.lead.id, leadId), eq(schema.lead.status, "Secured")))
     .limit(1);
-  if (!win) return Response.json({ error: "Win not found" }, { status: 404 });
-  if (win.ownerId === session.user.id) return Response.json({ error: "You cannot congratulate yourself" }, { status: 400 });
+  if (!win) return apiError(request, "winNotFound", 404);
+  if (win.ownerId === session.user.id) return apiError(request, "selfKudos", 400);
 
   const { message } = (await request.json().catch(() => ({}))) as { message?: string };
   const note = message?.trim().slice(0, 200) || null;

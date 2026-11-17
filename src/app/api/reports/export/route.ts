@@ -7,10 +7,13 @@ import { generatePdf } from "@/server/exports/pdf";
 import { loadDashboardData } from "@/server/dashboard-data";
 import { buildProducerReport, summarizeReport, type ReportLead } from "@/lib/reports";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
+import { localeFromRequest } from "@/i18n/server";
+import { exportLanguage } from "@/server/exports/letterhead";
 
 export async function GET(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
 
   const url = new URL(request.url);
   const type = url.searchParams.get("type") ?? "excel";
@@ -18,13 +21,25 @@ export async function GET(request: Request) {
   const to = url.searchParams.get("to") ?? undefined;
   const producerParam = url.searchParams.get("producer") ?? undefined;
   const statusParam = url.searchParams.get("status") ?? undefined;
+  const lang = exportLanguage(localeFromRequest(request));
+  const pdfResponse = async (generate: () => Promise<Buffer>, filename: string) => {
+    try {
+      const pdf = await generate();
+      return new Response(new Uint8Array(pdf), {
+        headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${filename}"` },
+      });
+    } catch (err) {
+      console.error(err);
+      return apiError(request, "pdfFailed", 500, { reason: (err as Error).message.split("\n")[0] });
+    }
+  };
 
   if (type === "dashboard") {
     const data = await loadDashboardData(session.user);
     const producerId = producerParam ? Number(producerParam) : undefined;
     const producer = data.producers.find((p) => p.id === producerId)?.name;
     return pdfResponse(
-      () => generateDashboardPdf(data, { from, to, status: statusParam, producer, producerId }),
+      () => generateDashboardPdf(data, { from, to, status: statusParam, producer, producerId }, lang),
       "sales-performance-report.pdf",
     );
   }
@@ -36,8 +51,7 @@ export async function GET(request: Request) {
       .from(schema.producer)
       .where(eq(schema.producer.userId, session.user.id))
       .limit(1);
-    if (!myProducer)
-      return new Response("No data", { status: 404 });
+    if (!myProducer) return apiError(request, "noProducerProfile", 404);
     producerFilter = myProducer.id;
   }
 
@@ -85,25 +99,13 @@ export async function GET(request: Request) {
 
   const filters = { from, to, producer: producerName, status: statusParam };
 
-  if (type === "pdf") return pdfResponse(() => generatePdf(rows, summary, filters), "sales-report.pdf");
+  if (type === "pdf") return pdfResponse(() => generatePdf(rows, summary, filters, lang), "sales-report.pdf");
 
-  const excel = await generateExcel(rows, summary, filters);
+  const excel = await generateExcel(rows, summary, filters, lang);
   return new Response(new Uint8Array(excel), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": 'attachment; filename="sales-report.xlsx"',
     },
   });
-}
-
-async function pdfResponse(generate: () => Promise<Buffer>, filename: string) {
-  try {
-    const pdf = await generate();
-    return new Response(new Uint8Array(pdf), {
-      headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${filename}"` },
-    });
-  } catch (err) {
-    console.error(err);
-    return Response.json({ error: `PDF export failed: ${(err as Error).message.split("\n")[0]}` }, { status: 500 });
-  }
 }

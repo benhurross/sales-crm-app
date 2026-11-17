@@ -5,12 +5,13 @@ import { auth } from "@/server/auth";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 export async function PUT(request: NextRequest, ctx: RouteContext<"/api/settings/users/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "admin"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
   const { name, email, role, banned, banReason, password } = await request.json();
@@ -20,7 +21,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/settings
     .from(schema.user)
     .where(eq(schema.user.id, id))
     .limit(1);
-  if (!existing) return Response.json({ error: "User not found" }, { status: 404 });
+  if (!existing) return apiError(request, "userNotFound", 404);
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (name !== undefined) updates.name = name;
@@ -52,14 +53,14 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/settings
 
 export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/settings/users/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "admin"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
 
   if (id === session.user.id)
-    return Response.json({ error: "Cannot delete yourself" }, { status: 400 });
+    return apiError(request, "cannotDeleteSelf", 400);
 
   // The producer and its leads stay; only the login is removed.
   const row = await db.transaction(async (tx) => {
@@ -68,6 +69,6 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/setti
     return deleted;
   });
 
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
   return Response.json({ ok: true });
 }

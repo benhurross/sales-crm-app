@@ -1,5 +1,6 @@
 import { and, eq, inArray, ne, or, sql } from "drizzle-orm";
-import { formatAmount } from "@/lib/format";
+import { direction, type Locale } from "@/i18n/config";
+import { translator } from "@/i18n/server";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { sendMail } from "@/server/mailer";
@@ -29,23 +30,48 @@ export async function notYetSecured(ids: number[]): Promise<number[]> {
   return rows.map((r) => r.id);
 }
 
+const numberFmt = new Intl.NumberFormat("en-US");
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-export function winEmail(win: { producer: string; client: string; premium: number; cob: string; rfqType: string }, appUrl?: string) {
-  const amount = formatAmount(Math.round(win.premium)).replace("\u{20C1}", "SAR");
-  const link = appUrl ? `${appUrl.replace(/\/$/, "")}/leads` : undefined;
+type WinDetails = { producer: string; client: string; premium: number; cob: string; rfqType: string };
+
+/** One language's part of the email, in that language's direction. */
+function emailSection(win: WinDetails, locale: Locale, link?: string) {
+  const t = translator(locale);
+  const amount = t("email.amount", { amount: numberFmt.format(Math.round(win.premium)) });
+  const kind = `${t(`cob.${win.cob}`)}, ${t(`rfq.${win.rfqType}`)}`;
+  const label = `padding:4px 0;padding-inline-end:16px;color:#6b7280`;
   return {
-    subject: `Deal secured: ${win.producer} won ${win.client}`,
-    text: `${win.producer} has just secured ${win.client} (${win.cob}, ${win.rfqType}) worth ${amount}.\n\nTake a moment to congratulate them.${link ? `\n\n${link}` : ""}`,
-    html: `<div style="font-family:Arial,sans-serif;color:#1e2022;max-width:520px">
-  <p style="font-size:13px;color:#0047ba;font-weight:bold;margin:0 0 8px">AP Plus Sales CRM</p>
-  <h2 style="margin:0 0 12px;font-size:20px">${esc(win.producer)} secured a deal</h2>
+    subject: t("email.subject", { producer: win.producer, client: win.client }),
+    text: `${t("email.body", { producer: win.producer, client: win.client, kind, amount })}\n${t("email.congratulate")}${link ? `\n${link}` : ""}`,
+    html: `<div dir="${direction(locale)}" lang="${locale}" style="text-align:start">
+  <h2 style="margin:0 0 12px;font-size:20px">${esc(t("email.heading", { producer: win.producer }))}</h2>
   <table style="border-collapse:collapse;font-size:14px">
-    <tr><td style="padding:4px 16px 4px 0;color:#6b7280">Client</td><td><b>${esc(win.client)}</b></td></tr>
-    <tr><td style="padding:4px 16px 4px 0;color:#6b7280">Premium</td><td><b>${esc(amount)}</b></td></tr>
-    <tr><td style="padding:4px 16px 4px 0;color:#6b7280">Class</td><td>${esc(win.cob)}, ${esc(win.rfqType)}</td></tr>
+    <tr><td style="${label}">${esc(t("email.client"))}</td><td><b>${esc(win.client)}</b></td></tr>
+    <tr><td style="${label}">${esc(t("email.premium"))}</td><td><b>${esc(amount)}</b></td></tr>
+    <tr><td style="${label}">${esc(t("email.class"))}</td><td>${esc(kind)}</td></tr>
   </table>
-  <p style="font-size:14px;margin:16px 0">Take a moment to congratulate them${link ? ` in the <a href="${esc(link)}" style="color:#0047ba">Sales CRM</a>` : ""}.</p>
+  <p style="font-size:14px;margin:16px 0">${esc(t("email.congratulate"))}${link ? ` <a href="${esc(link)}" style="color:#0047ba">${esc(t("email.open"))}</a>` : ""}</p>
+</div>`,
+  };
+}
+
+/**
+ * The win email, in English then Arabic: managers choose their language in their own browser,
+ * so the server cannot know which one each reader prefers.
+ */
+export function winEmail(win: WinDetails, appUrl?: string) {
+  const link = appUrl ? `${appUrl.replace(/\/$/, "")}/leads` : undefined;
+  const en = emailSection(win, "en", link);
+  const ar = emailSection(win, "ar", link);
+  return {
+    subject: `${en.subject} | ${ar.subject}`,
+    text: `${en.text}\n\n----\n\n${ar.text}`,
+    html: `<div style="font-family:Arial,Tahoma,sans-serif;color:#1e2022;max-width:520px">
+  <p style="font-size:13px;color:#0047ba;font-weight:bold;margin:0 0 8px">AP Plus Sales CRM</p>
+  ${en.html}
+  <hr style="border:none;border-top:1px solid #e5e9f0;margin:20px 0">
+  ${ar.html}
 </div>`,
   };
 }

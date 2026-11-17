@@ -4,12 +4,13 @@ import { hasRole } from "@/lib/permissions";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 export async function PUT(request: NextRequest, ctx: RouteContext<"/api/targets/[id]">) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   if (!hasRole(session.user.role, "manager"))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
   const { annualTarget, monthlyTarget } = await request.json();
@@ -24,6 +25,6 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/targets/
     .where(eq(schema.producer.id, Number(id)))
     .returning();
 
-  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiError(request, "notFound", 404);
   return Response.json(row);
 }

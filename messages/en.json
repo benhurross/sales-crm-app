@@ -56,7 +56,8 @@
     },
     "signOut": "Sign out",
     "soundOff": "Celebration sound: Off",
-    "soundOn": "Celebration sound: On"
+    "soundOn": "Celebration sound: On",
+    "myBadges": "My badges"
   },
   "status": {
     "Secured": "Secured",
@@ -178,7 +179,9 @@
       "personalBest": "A new personal best deal",
       "targetReached": "You reached your annual target",
       "targetPassed": "You passed {value}% of your annual target",
-      "weekStreak": "{value} wins this week"
+      "weekStreak": "{value} wins this week",
+      "firstEver": "Your very first win. Welcome to the board!",
+      "fiveThisMonth": "Five wins this month: Five-Deal Month badge earned"
     },
     "everyWinCounts": "Every win counts. The whole team is celebrating with you.",
     "nextWin": "Next win ({count} more)",
@@ -326,7 +329,8 @@
     "added": "Salesman added",
     "updated": "Salesman updated",
     "deleted": "Salesman deleted",
-    "confirmDelete": "Delete this salesman?"
+    "confirmDelete": "Delete this salesman?",
+    "colBadges": "Badges"
   },
   "settings": {
     "title": "Settings",
@@ -370,5 +374,97 @@
     "updated": "Insurer updated",
     "deleted": "Insurer deleted",
     "confirmDelete": "Delete this insurance company?"
+  },
+  "errors": {
+    "unauthorized": "Please sign in again.",
+    "forbidden": "You do not have permission to do this.",
+    "notFound": "Not found.",
+    "nameRequired": "Name is required.",
+    "producerRequired": "Producer is required.",
+    "noProducerProfile": "Your account is not linked to a salesman record.",
+    "idsAndStatusRequired": "Choose leads and a status.",
+    "selfKudos": "You cannot congratulate yourself.",
+    "winNotFound": "This win was not found.",
+    "userNotFound": "User not found.",
+    "producerCodeExists": "This producer code already exists.",
+    "nameEmailPasswordRequired": "Name, email and password are required.",
+    "missingFields": "Please fill in the required fields.",
+    "invalidStatus": "Invalid status.",
+    "insurerExists": "This insurance company already exists.",
+    "emailExists": "This email is already in use.",
+    "codeAndNameRequired": "Code and name are required.",
+    "clientNameRequired": "Client name is required.",
+    "insurerInUse": "This insurance company is used by leads and cannot be deleted.",
+    "cannotDeleteSelf": "You cannot delete your own account.",
+    "producerHasRecords": "Cannot delete: this salesman still has {leads} leads and {prospects} prospects. Reassign them first.",
+    "pdfFailed": "PDF export failed: {reason}"
+  },
+  "export": {
+    "company": "AP Plus Insurance Brokerage",
+    "generated": "Generated {date}",
+    "page": "Page {page} of {pages}",
+    "allFilters": "All producers, all dates",
+    "filterDate": "Date: {from} to {to}",
+    "start": "start",
+    "present": "present",
+    "filterProducer": "Producer: {name}",
+    "filterStatus": "Status: {status}",
+    "total": "TOTAL",
+    "producerReportTitle": "Sales Report by Producer",
+    "performanceTitle": "Sales Performance Report",
+    "keyMetrics": "Key metrics",
+    "performance": "Performance",
+    "pipelineAndMix": "Pipeline and mix",
+    "highlights": "Highlights",
+    "targetGaugeSubtitle": "Secured vs annual target; tick marks year-to-date pace",
+    "days": "{range} days",
+    "insightTarget": "Secured premium is {secured}, {achievement} of the {target} annual target; {pace} of the year has passed ({status}).",
+    "insightPipeline": "{count} leads worth {amount} are still open; {stale} of them ({staleAmount}) have been open for more than 90 days.",
+    "insightWinRate": "Win rate on decided leads is {rate} ({won} won, {lost} lost), with an average secured deal of {deal}.",
+    "insightTopProducer": "Top producer by secured premium: {name} with {amount} ({achievement} of target).",
+    "insightCob": "{cob} is the largest class of business at {amount} in estimated premium.",
+    "insightConversion": "Only {rate} of {total, number} prospects have become leads."
+  },
+  "email": {
+    "subject": "Deal secured: {producer} won {client}",
+    "heading": "{producer} secured a deal",
+    "body": "{producer} has just secured {client} ({kind}) worth {amount}.",
+    "client": "Client",
+    "premium": "Premium",
+    "class": "Class",
+    "amount": "SAR {amount}",
+    "congratulate": "Take a moment to congratulate them.",
+    "open": "Open the Sales CRM"
+  },
+  "badges": {
+    "firstWin": {
+      "name": "First Win",
+      "description": "secured their first lead"
+    },
+    "hatTrick": {
+      "name": "Hat-trick",
+      "description": "three wins in one week"
+    },
+    "fiveDealMonth": {
+      "name": "Five-Deal Month",
+      "description": "five wins in one month"
+    },
+    "targetReached": {
+      "name": "Target Reached",
+      "description": "secured premium reached the annual target"
+    },
+    "dealOfQuarter": {
+      "name": "Deal of the Quarter {period}",
+      "description": "the team's biggest single win that quarter"
+    }
+  },
+  "winOfWeek": {
+    "title": "Win of the Week",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "by": "by {name}",
+    "byYou": "by you",
+    "kudos": "{count, plural, one {# congratulation} other {# congratulations}}",
+    "none": "No wins yet this week or last. The next secured deal could be it."
   }
 }

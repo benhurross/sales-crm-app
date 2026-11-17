@@ -3,6 +3,7 @@ import { celebrationFor } from "@/lib/celebration";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { apiError } from "@/server/api-error";
 
 async function myProducer(userId: string) {
   const [p] = await db
@@ -16,7 +17,7 @@ async function myProducer(userId: string) {
 /** The signed-in salesman's wins they have not celebrated yet, and congratulations they have not seen. */
 export async function GET(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   const producer = await myProducer(session.user.id);
   if (!producer) return Response.json({ celebrations: [], kudos: [] });
 
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
 /** Marks celebrations and congratulations as seen. Body: { celebrated?: number[], kudosSeen?: number[] } */
 export async function POST(request: Request) {
   const session = await getSession(request);
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return apiError(request, "unauthorized", 401);
   const producer = await myProducer(session.user.id);
   if (!producer) return Response.json({ ok: true });
 

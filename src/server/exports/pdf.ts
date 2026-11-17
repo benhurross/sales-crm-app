@@ -1,6 +1,6 @@
 import { formatAmount } from "@/lib/format";
 import type { ProducerReportRow, ReportSummary } from "@/lib/reports";
-import { BRAND_BLUE, esc, letterheadDocument, renderPdf, type ReportFilters } from "./letterhead";
+import { BRAND_BLUE, esc, letterheadDocument, renderPdf, type ExportLanguage, type ReportFilters } from "./letterhead";
 
 function achievementColor(pct: number) {
   if (pct >= 100) return "#10b981";
@@ -13,24 +13,34 @@ const CSS = `
   table { width: 100%; border-collapse: collapse; }
   thead { display: table-header-group; }
   tr { break-inside: avoid; }
-  th { background: ${BRAND_BLUE}; color: #fff; padding: 5px 6px; font-size: 8px; text-align: right; white-space: nowrap; }
-  th:first-child, td:first-child { text-align: left; }
+  th { background: ${BRAND_BLUE}; color: #fff; padding: 5px 6px; font-size: 8px; text-align: end; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: start; }
   td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; font-size: 8.5px; }
   tbody tr:nth-child(even) td { background: #f8fafc; }
   .summary td { background: ${BRAND_BLUE} !important; color: #fff; font-weight: bold; border: none; padding: 5px 6px; }`;
 
-export async function generatePdf(rows: ProducerReportRow[], summary: ReportSummary, filters: ReportFilters): Promise<Buffer> {
-  return renderPdf(await buildProducerHtml(rows, summary, filters), true);
+export async function generatePdf(rows: ProducerReportRow[], summary: ReportSummary, filters: ReportFilters, lang: ExportLanguage): Promise<Buffer> {
+  return renderPdf(await buildProducerHtml(rows, summary, filters, lang), true, lang);
 }
 
-export async function buildProducerHtml(rows: ProducerReportRow[], summary: ReportSummary, filters: ReportFilters): Promise<string> {
+export async function buildProducerHtml(rows: ProducerReportRow[], summary: ReportSummary, filters: ReportFilters, lang: ExportLanguage): Promise<string> {
+  const { t } = lang;
+  const headers = [
+    t("reports.colProducer"),
+    t("reports.colLeads"),
+    t("reports.colBor"),
+    t("status.Secured"),
+    t("status.Pending"),
+    t("status.Lost"),
+    t("reports.colSecuredPremium"),
+    t("reports.colTotalPremium"),
+    t("reports.colTarget"),
+    t("reports.colAchievement"),
+  ];
   const body = `
   <table>
     <thead>
-      <tr>
-        <th>Producer</th><th>Leads</th><th>BOR</th><th>Secured</th><th>Pending</th><th>Lost</th>
-        <th>Secured Premium</th><th>Total Premium</th><th>Target</th><th>Achievement</th>
-      </tr>
+      <tr>${headers.map((h) => `<th>${esc(h)}</th>`).join("")}</tr>
     </thead>
     <tbody>
       ${rows
@@ -51,7 +61,7 @@ export async function buildProducerHtml(rows: ProducerReportRow[], summary: Repo
         )
         .join("")}
       <tr class="summary">
-        <td>TOTAL</td>
+        <td>${esc(t("export.total"))}</td>
         <td class="num">${summary.totalLeads}</td>
         <td class="num">${summary.totalBor}</td>
         <td class="num">${summary.totalSecured}</td>
@@ -65,5 +75,5 @@ export async function buildProducerHtml(rows: ProducerReportRow[], summary: Repo
     </tbody>
   </table>`;
 
-  return letterheadDocument({ title: "Sales Report by Producer", filters, css: CSS, body });
+  return letterheadDocument({ title: t("export.producerReportTitle"), filters, css: CSS, body, lang });
 }
