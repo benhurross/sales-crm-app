@@ -29,6 +29,13 @@
       "when": 1793857293423,
       "tag": "0003_bouncy_puff_adder",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794905088507,
+      "tag": "0004_celebrations",
+      "breakpoints": true
     }
   ]
 }

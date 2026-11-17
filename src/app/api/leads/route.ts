@@ -2,6 +2,7 @@ import { eq, getTableColumns } from "drizzle-orm";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { notifyManagers } from "@/server/wins";
 
 export async function GET(request: Request) {
   const session = await getSession(request);
@@ -83,8 +84,11 @@ export async function POST(request: Request) {
       quoteTimestamp: quoteTimestamp || null,
       comments: comments || null,
       prospectClientId: prospectClientId ? Number(prospectClientId) : null,
+      securedAt: status === "Secured" ? new Date() : null,
     })
     .returning();
+
+  if (row.status === "Secured") notifyManagers([row.id]);
 
   if (prospectClientId) {
     await db

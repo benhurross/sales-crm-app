@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { KeyRound, LogOut } from "lucide-react";
+import { KeyRound, LogOut, Volume2, VolumeX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { setSoundEnabled, soundEnabled } from "@/components/celebration/sound";
 import { authClient } from "@/lib/auth-client";
 import { useCurrentUser } from "./current-user";
 
@@ -42,6 +43,7 @@ export function UserMenu() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [changingPassword, setChangingPassword] = useState(false);
+  const [sound, setSound] = useState(soundEnabled);
 
   const signOut = async () => {
     await authClient.signOut();
@@ -69,6 +71,16 @@ export function UserMenu() {
           <DropdownMenuItem onSelect={() => setChangingPassword(true)}>
             <KeyRound />
             Change password
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setSoundEnabled(!sound);
+              setSound(!sound);
+            }}
+          >
+            {sound ? <Volume2 /> : <VolumeX />}
+            Celebration sound: {sound ? "On" : "Off"}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={signOut}>
             <LogOut />

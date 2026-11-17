@@ -127,6 +127,7 @@ export default function LeadsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["wins"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       toast.success(editingLead ? "Lead updated" : "Lead created");
       closeForm();
@@ -141,6 +142,7 @@ export default function LeadsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["wins"] });
       toast.success("Lead deleted");
     },
   });
@@ -158,6 +160,7 @@ export default function LeadsPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["wins"] });
       setRowSelection({});
       toast.success(`${data.updated} leads updated`);
     },

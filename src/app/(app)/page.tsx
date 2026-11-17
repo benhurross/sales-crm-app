@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { useMemo, useState } from "react";
 import { useCurrentUser } from "@/components/app-shell/current-user";
+import { RecentWins } from "@/components/celebration/recent-wins";
 import { PageHeader } from "@/components/page-header";
 import { Progress } from "@/components/ui/progress";
 import { formatAmount, formatCompact, formatPercent, RIYAL } from "@/lib/format";
@@ -228,22 +229,12 @@ export default function DashboardPage() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Monthly Lead Volume" subtitle="New business vs renewals">
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={volume}>
-              <CartesianGrid vertical={false} {...GRID} />
-              <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={monthLabel} />
-              <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
-              <Tooltip content={<ChartTooltip formatter={(v) => `${v} leads`} labelFormatter={monthLabel} />} cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.4 }} />
-              <Line type="monotone" dataKey="New" stroke="var(--chart-1)" strokeWidth={2} dot={{ r: 3.5, strokeWidth: 2, stroke: "var(--background)", fill: "var(--chart-1)" }} activeDot={{ r: 5 }} />
-              <Line type="monotone" dataKey="Renewal" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3.5, strokeWidth: 2, stroke: "var(--background)", fill: "var(--chart-2)" }} activeDot={{ r: 5 }} />
-              <Legend {...LEGEND} />
-            </LineChart>
-          </ResponsiveContainer>
+        <ChartCard title="Recent Wins" subtitle="Celebrate the team's latest secured deals" className="scroll-mt-20" id="recent-wins">
+          <RecentWins />
         </ChartCard>
       </div>
 
-      {/* Producers, lines of business, pipeline health */}
+      {/* Producers and lead volume */}
       <div className="grid gap-4 lg:grid-cols-3">
         <ChartCard title="Producer Leaderboard" subtitle="Ranked by secured premium; achievement is secured against annual target" className="lg:col-span-2">
           <div className="max-h-[430px] overflow-auto">
@@ -284,34 +275,49 @@ export default function DashboardPage() {
             </table>
           </div>
         </ChartCard>
-        <div className="grid min-w-0 gap-4">
-          <ChartCard title="Premium by Class of Business" subtitle="Split by lead status">
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={cobStatus} layout="vertical" barCategoryGap="30%">
-                <CartesianGrid horizontal={false} {...GRID} />
-                <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={compactAxis} />
-                <YAxis dataKey="name" type="category" tick={AXIS_TICK} axisLine={false} tickLine={false} width={60} />
-                <Tooltip content={<ChartTooltip formatter={money} />} cursor={CURSOR} />
-                <StatusBars horizontal />
-                <Legend {...LEGEND} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-          <ChartCard title="Open Pipeline Aging" subtitle="Pending premium by age, in days since work started">
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={aging} layout="vertical" barCategoryGap="28%" margin={{ right: 64 }}>
-                <CartesianGrid horizontal={false} {...GRID} />
-                <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={compactAxis} />
-                <YAxis dataKey="name" type="category" tick={AXIS_TICK} axisLine={false} tickLine={false} width={44} />
-                <Tooltip content={<ChartTooltip formatter={money} />} cursor={CURSOR} />
-                <Bar dataKey="value" name="Pending premium" radius={[0, 4, 4, 0]}>
-                  {aging.map((_, i) => <Cell key={i} fill="var(--chart-1)" fillOpacity={0.4 + i * 0.2} />)}
-                  <LabelList dataKey="count" position="right" fontSize={11} fill="var(--muted-foreground)" formatter={(v) => `${v} leads`} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </div>
+        <ChartCard title="Monthly Lead Volume" subtitle="New business vs renewals">
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={volume}>
+              <CartesianGrid vertical={false} {...GRID} />
+              <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={monthLabel} />
+              <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
+              <Tooltip content={<ChartTooltip formatter={(v) => `${v} leads`} labelFormatter={monthLabel} />} cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.4 }} />
+              <Line type="monotone" dataKey="New" stroke="var(--chart-1)" strokeWidth={2} dot={{ r: 3.5, strokeWidth: 2, stroke: "var(--background)", fill: "var(--chart-1)" }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="Renewal" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3.5, strokeWidth: 2, stroke: "var(--background)", fill: "var(--chart-2)" }} activeDot={{ r: 5 }} />
+              <Legend {...LEGEND} />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+
+      {/* Lines of business and pipeline health */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartCard title="Premium by Class of Business" subtitle="Split by lead status">
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={cobStatus} layout="vertical" barCategoryGap="30%">
+              <CartesianGrid horizontal={false} {...GRID} />
+              <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={compactAxis} />
+              <YAxis dataKey="name" type="category" tick={AXIS_TICK} axisLine={false} tickLine={false} width={60} />
+              <Tooltip content={<ChartTooltip formatter={money} />} cursor={CURSOR} />
+              <StatusBars horizontal />
+              <Legend {...LEGEND} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title="Open Pipeline Aging" subtitle="Pending premium by age, in days since work started">
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={aging} layout="vertical" barCategoryGap="28%" margin={{ right: 64 }}>
+              <CartesianGrid horizontal={false} {...GRID} />
+              <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={compactAxis} />
+              <YAxis dataKey="name" type="category" tick={AXIS_TICK} axisLine={false} tickLine={false} width={44} />
+              <Tooltip content={<ChartTooltip formatter={money} />} cursor={CURSOR} />
+              <Bar dataKey="value" name="Pending premium" radius={[0, 4, 4, 0]}>
+                {aging.map((_, i) => <Cell key={i} fill="var(--chart-1)" fillOpacity={0.4 + i * 0.2} />)}
+                <LabelList dataKey="count" position="right" fontSize={11} fill="var(--muted-foreground)" formatter={(v) => `${v} leads`} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
       </div>
     </div>
   );
@@ -399,9 +405,9 @@ function Funnel({ stages }: { stages: { name: string; count: number }[] }) {
   );
 }
 
-function ChartCard({ title, subtitle, className, children }: { title: string; subtitle?: string; className?: string; children: React.ReactNode }) {
+function ChartCard({ title, subtitle, className, id, children }: { title: string; subtitle?: string; className?: string; id?: string; children: React.ReactNode }) {
   return (
-    <section className={`min-w-0 rounded-xl border bg-card p-4 shadow-glass glass-sheen ${className ?? ""}`}>
+    <section id={id} className={`min-w-0 rounded-xl border bg-card p-4 shadow-glass glass-sheen ${className ?? ""}`}>
       <h3 className="text-sm font-semibold">{title}</h3>
       {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
       <div className="mt-3">{children}</div>

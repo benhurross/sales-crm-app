@@ -62,3 +62,5 @@ sudo firewall-cmd --permanent --add-port=3600/tcp && sudo firewall-cmd --reload
 ```
 
 The app is then at `http://<server-ip>:3600`. Logs: `journalctl -u sales-crm -f` and `/var/log/httpd/error_log`.
+
+To email managers when a salesman secures a deal, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` and `APP_URL` in `.env.local` (see `.env.example`) and restart the service. Without them the app still celebrates wins on screen; it just sends no email.

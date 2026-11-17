@@ -1,4 +1,4 @@
-import { boolean, date, integer, numeric, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, date, integer, numeric, pgEnum, pgTable, serial, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
 
 const uuid = () => text().$defaultFn(() => crypto.randomUUID());
 
@@ -100,9 +100,27 @@ export const lead = pgTable("lead", {
   borTimestamp: date(),
   quoteTimestamp: date(),
   comments: text(),
+  /** When the lead was marked Secured; null for leads secured before this was recorded. */
+  securedAt: timestamp(),
+  /** When the owning salesman saw the celebration for this win. */
+  celebratedAt: timestamp(),
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
 });
+
+/** A colleague's congratulations on a secured lead. */
+export const winKudos = pgTable(
+  "win_kudos",
+  {
+    id: serial().primaryKey(),
+    leadId: integer().notNull().references(() => lead.id, { onDelete: "cascade" }),
+    userId: text().notNull().references(() => user.id, { onDelete: "cascade" }),
+    message: text(),
+    seenAt: timestamp(),
+    createdAt: timestamp().notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.leadId, t.userId)],
+);
 
 export const prospectClient = pgTable("prospect_client", {
   id: serial().primaryKey(),

@@ -3,6 +3,7 @@ import { hasRole } from "@/lib/permissions";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { notYetSecured, notifyManagers, securedColumns } from "@/server/wins";
 
 export async function PATCH(request: Request) {
   const session = await getSession(request);
@@ -31,11 +32,14 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const newWins = status === "Secured" ? await notYetSecured(ids) : [];
+  const nextStatus = status as "Secured" | "Pending" | "Lost";
   const updated = await db
     .update(schema.lead)
-    .set({ status: status as "Secured" | "Pending" | "Lost", updatedAt: new Date() })
+    .set({ status: nextStatus, ...securedColumns(nextStatus), updatedAt: new Date() })
     .where(inArray(schema.lead.id, ids))
     .returning({ id: schema.lead.id });
+  notifyManagers(newWins);
 
   return Response.json({ updated: updated.length });
 }

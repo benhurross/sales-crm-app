@@ -4,6 +4,7 @@ import { hasRole } from "@/lib/permissions";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
+import { notifyManagers, securedColumns } from "@/server/wins";
 
 async function canAccessLead(userId: string, role: string | null | undefined, leadId: number) {
   if (hasRole(role, "manager")) return true;
@@ -49,7 +50,11 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/leads/[i
 
   const { commission, currentInsurerId, borTimestamp, quoteTimestamp, comments, prospectClientId, ...rest } = await request.json();
 
-  const [existing] = await db.select({ prospectClientId: schema.lead.prospectClientId }).from(schema.lead).where(eq(schema.lead.id, numId)).limit(1);
+  const [existing] = await db
+    .select({ prospectClientId: schema.lead.prospectClientId, status: schema.lead.status })
+    .from(schema.lead)
+    .where(eq(schema.lead.id, numId))
+    .limit(1);
   const oldProspectId = existing?.prospectClientId;
   const newProspectId = prospectClientId !== undefined ? (prospectClientId ? Number(prospectClientId) : null) : oldProspectId;
 
@@ -63,12 +68,14 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/leads/[i
       quoteTimestamp: quoteTimestamp || null,
       comments: comments || null,
       prospectClientId: newProspectId,
+      ...securedColumns(rest.status),
       updatedAt: new Date(),
     })
     .where(eq(schema.lead.id, numId))
     .returning();
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (row.status === "Secured" && existing?.status !== "Secured") notifyManagers([row.id]);
 
   if (oldProspectId && oldProspectId !== newProspectId) {
     await db.update(schema.prospectClient).set({ status: "prospect", updatedAt: new Date() }).where(eq(schema.prospectClient.id, oldProspectId));

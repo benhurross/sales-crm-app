@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { CelebrationHost } from "@/components/celebration/celebration-host";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { AppSidebar } from "./app-sidebar";
@@ -40,6 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="flex-1 p-4 md:p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
+      <CelebrationHost />
     </CurrentUserProvider>
   );
 }
