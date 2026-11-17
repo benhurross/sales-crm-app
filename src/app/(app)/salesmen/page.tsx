@@ -49,6 +49,7 @@ export default function SalesmenPage() {
   const queryClient = useQueryClient();
   const t = useTranslations("salesmen");
   const tc = useTranslations("common");
+  const ts = useTranslations("status");
   const { data: highlights } = useHighlights();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Producer | null>(null);
@@ -120,6 +121,7 @@ export default function SalesmenPage() {
       {
         accessorKey: "employmentStatus",
         header: t("colStatus"),
+        meta: { filterLabel: (v) => ts(v) },
         size: 120,
         cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
       },
@@ -153,7 +155,7 @@ export default function SalesmenPage() {
           ]
         : []),
     ],
-    [canEdit, user.role, deleteMutation, t, tc, highlights],
+    [canEdit, user.role, deleteMutation, t, tc, ts, highlights],
   );
 
   return (

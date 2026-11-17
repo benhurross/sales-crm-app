@@ -3,15 +3,19 @@
 import type { LegacyColumnDef } from "@tanstack/react-table/legacy";
 import {
   getCoreRowModel,
+  getFacetedMinMaxValues,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useLegacyTable,
 } from "@tanstack/react-table/legacy";
 import { flexRender } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { ColumnFilter, excelFilter, type FilterMeta, type FilterValue } from "@/components/column-filter";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -24,21 +28,18 @@ interface DataTableProps<TData extends Record<string, any>> {
   enableRowSelection?: boolean;
   rowSelection?: Record<string, true>;
   onRowSelectionChange?: (value: Record<string, true>) => void;
-  pageSize?: number;
-  server?: ServerSide;
 }
 
 type Sorting = { id: string; desc: boolean }[];
+type Filters = { id: string; value: unknown }[];
 
-// Paging and sorting done by the caller (the API returns one page at a time).
-export interface ServerSide {
-  rowCount: number;
-  pageIndex: number;
-  onPageIndexChange: (pageIndex: number) => void;
-  sorting: Sorting;
-  onSortingChange: (sorting: Sorting) => void;
-}
+/** Above this many rows only the rows in view are drawn, so long lists scroll smoothly. */
+const VIRTUAL_FROM = 200;
 
+/**
+ * One scrollable table with a fixed header. Each column header has an Excel-style filter
+ * (values, months or a number range, from the column's `meta`) and sorts on click.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RowData requires Record<string,any>
 export function DataTable<TData extends Record<string, any>>({
   columns,
@@ -48,45 +49,35 @@ export function DataTable<TData extends Record<string, any>>({
   enableRowSelection,
   rowSelection,
   onRowSelectionChange,
-  pageSize = 25,
-  server,
 }: DataTableProps<TData>) {
-  const t = useTranslations("common");
-  const [localSorting, setSorting] = useState<Sorting>([]);
-  const sorting = server?.sorting ?? localSorting;
-  const [columnFilters, setColumnFilters] = useState<{ id: string; value: unknown }[]>([]);
+  const t = useTranslations("filter");
+  const [sorting, setSorting] = useState<Sorting>([]);
+  const [columnFilters, setColumnFilters] = useState<Filters>([]);
   const [internalSelection, setInternalSelection] = useState<Record<string, true>>({});
-  const [localPage, setLocalPage] = useState(0);
-
-  // Back to the first page when the search or the row set changes.
-  const [resetKey, setResetKey] = useState({ globalFilter, rows: data.length });
-  if (resetKey.globalFilter !== globalFilter || resetKey.rows !== data.length) {
-    setResetKey({ globalFilter, rows: data.length });
-    setLocalPage(0);
-  }
-
-  const pageIndex = server?.pageIndex ?? localPage;
-  const setPageIndex = server?.onPageIndexChange ?? setLocalPage;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const kinds = new Map(
+    columns.map((c) => [String(c.id ?? (c as { accessorKey?: string }).accessorKey), (c.meta as FilterMeta | undefined)?.filter]),
+  );
 
   const table = useLegacyTable({
     data,
     columns,
+    defaultColumn: {
+      filterFn: (row: { getValue: (id: string) => unknown }, columnId: string, value: FilterValue) =>
+        excelFilter(row, columnId, value, kinds.get(columnId)),
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: server
-      ? (updater: unknown) => server.onSortingChange(typeof updater === "function" ? updater(server.sorting) : updater)
-      : setSorting,
-    manualPagination: !!server,
-    manualSorting: !!server,
-    rowCount: server?.rowCount,
-    autoResetPageIndex: false,
-    onPaginationChange: (updater: unknown) => {
-      const current = { pageIndex, pageSize };
-      setPageIndex((typeof updater === "function" ? updater(current) : updater).pageIndex);
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    getFacetedMinMaxValues: getFacetedMinMaxValues(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: (updater: unknown) => {
+      setColumnFilters((current) => (typeof updater === "function" ? updater(current) : updater));
+      // selected rows could be hidden by the new filter, so start the selection again
+      onRowSelectionChange?.({});
     },
-    onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange,
     enableRowSelection,
     onRowSelectionChange: onRowSelectionChange
@@ -100,38 +91,53 @@ export function DataTable<TData extends Record<string, any>>({
       columnFilters,
       globalFilter,
       rowSelection: rowSelection ?? internalSelection,
-      pagination: { pageIndex, pageSize },
     },
   });
 
-  const pageCount = table.getPageCount();
+  const rows = table.getRowModel().rows;
+  const virtual = rows.length > VIRTUAL_FROM;
+  const virtualizer = useVirtualizer({
+    count: virtual ? rows.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 31,
+    overscan: 15,
+  });
+  const items = virtual ? virtualizer.getVirtualItems() : [];
+  const padTop = items[0]?.start ?? 0;
+  const padBottom = virtual ? virtualizer.getTotalSize() - (items.at(-1)?.end ?? 0) : 0;
+  const shown = virtual ? items.map((i) => rows[i.index]) : rows;
+  const span = table.getVisibleLeafColumns().length;
 
   return (
     <div className="space-y-2">
-      <div className="max-h-[calc(100dvh-280px)] overflow-auto rounded-xl border bg-card shadow-glass glass-sheen">
-        <Table>
-          <TableHeader className="sticky top-0 z-10 bg-muted backdrop-blur supports-[backdrop-filter]:bg-muted/90">
+      <div ref={scrollRef} className="max-h-[calc(100dvh-230px)] overflow-auto rounded-xl border bg-card shadow-glass glass-sheen">
+        <Table className="text-xs">
+          <TableHeader className="sticky top-0 z-10 bg-muted shadow-[0_1px_0_var(--border)]">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id}>
                 {hg.headers.map((header) => (
-                  <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}>
-                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 hover:text-foreground"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() === "asc" ? (
-                          <ArrowUp className="size-3.5" />
-                        ) : header.column.getIsSorted() === "desc" ? (
-                          <ArrowDown className="size-3.5" />
+                  <TableHead
+                    key={header.id}
+                    className="h-8 border-e border-border/60 px-2 text-xs font-semibold last:border-e-0"
+                    style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                  >
+                    {header.isPlaceholder ? null : (
+                      <div className="flex items-center gap-1">
+                        {header.column.getCanSort() ? (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 hover:text-foreground"
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {header.column.getIsSorted() === "asc" && <ArrowUp className="size-3.5" />}
+                            {header.column.getIsSorted() === "desc" && <ArrowDown className="size-3.5" />}
+                          </button>
                         ) : (
-                          <ArrowUpDown className="size-3.5 text-muted-foreground/50" />
+                          flexRender(header.column.columnDef.header, header.getContext())
                         )}
-                      </button>
-                    ) : (
-                      flexRender(header.column.columnDef.header, header.getContext())
+                        {header.column.getCanFilter() && <ColumnFilter column={header.column} />}
+                      </div>
                     )}
                   </TableHead>
                 ))}
@@ -139,39 +145,45 @@ export function DataTable<TData extends Record<string, any>>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() ? "selected" : undefined}>
+            {padTop > 0 && <tr style={{ height: padTop }} aria-hidden />}
+            {shown.length ? (
+              shown.map((row, i) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  data-index={virtual ? items[i].index : undefined}
+                  ref={virtual ? virtualizer.measureElement : undefined}
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell key={cell.id} className="border-e border-border/40 px-2 py-1 last:border-e-0 [&_[data-size=icon]]:size-6">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={span} className="h-24 text-center text-muted-foreground">
                   {t("noResults")}
                 </TableCell>
               </TableRow>
             )}
+            {padBottom > 0 && <tr style={{ height: padBottom }} aria-hidden />}
           </TableBody>
         </Table>
       </div>
-      {pageCount > 1 && (
-        <div className="flex items-center justify-between px-1 text-sm text-muted-foreground">
-          <span>
-            {t("page", { page: pageIndex + 1, pages: pageCount, rows: server?.rowCount ?? table.getFilteredRowModel().rows.length })}
-          </span>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="size-8" aria-label={t("previousPage")} disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
-              <ChevronLeft className="size-4 rtl:rotate-180" />
-            </Button>
-            <Button variant="outline" size="icon" className="size-8" aria-label={t("nextPage")} disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
-              <ChevronRight className="size-4 rtl:rotate-180" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <div className="flex min-h-8 items-center justify-between gap-2 px-1 text-sm text-muted-foreground">
+        <span>
+          {rows.length === data.length
+            ? t("rows", { count: data.length })
+            : t("rowsOf", { shown: rows.length, total: data.length })}
+        </span>
+        {columnFilters.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={() => table.resetColumnFilters()}>
+            {t("clearAll")}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

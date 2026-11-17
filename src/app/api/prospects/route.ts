@@ -1,9 +1,10 @@
-import { type AnyColumn, and, asc, count, eq, getTableColumns, ilike, or, sql } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { getSession } from "@/server/session";
 import { apiError } from "@/server/api-error";
 
+/** All prospects the user may see (a salesman sees their own), for one client-side table. */
 export async function GET(request: Request) {
   const session = await getSession(request);
   if (!session) return apiError(request, "unauthorized", 401);
@@ -15,66 +16,30 @@ export async function GET(request: Request) {
       .from(schema.producer)
       .where(eq(schema.producer.userId, session.user.id))
       .limit(1);
-    if (!myProducer) return Response.json({ rows: [], total: 0 });
+    if (!myProducer) return Response.json([]);
     producerFilter = myProducer.id;
   }
 
-  const params = new URL(request.url).searchParams;
-  const page = Math.max(0, Number(params.get("page")) || 0);
-  const pageSize = Math.min(100, Math.max(1, Number(params.get("pageSize")) || 25));
-  const q = params.get("q")?.trim();
-  const lob = params.get("lob");
-  const status = params.get("status");
-  const sortColumn = SORT_COLUMNS[params.get("sort") ?? ""] ?? schema.prospectClient.clientName;
-  const order = params.get("dir") === "desc" ? sql`${sortColumn} desc nulls last` : sql`${sortColumn} asc nulls last`;
+  const query = db
+    .select({
+      id: schema.prospectClient.id,
+      producerId: schema.prospectClient.producerId,
+      clientName: schema.prospectClient.clientName,
+      premiums: schema.prospectClient.premiums,
+      month: schema.prospectClient.month,
+      currentInsurerId: schema.prospectClient.currentInsurerId,
+      lob: schema.prospectClient.lob,
+      status: schema.prospectClient.status,
+      producerName: schema.producer.name,
+      insurerName: schema.insuranceCompany.name,
+    })
+    .from(schema.prospectClient)
+    .leftJoin(schema.producer, eq(schema.prospectClient.producerId, schema.producer.id))
+    .leftJoin(schema.insuranceCompany, eq(schema.prospectClient.currentInsurerId, schema.insuranceCompany.id))
+    .orderBy(asc(schema.prospectClient.clientName));
 
-  const where = and(
-    producerFilter ? eq(schema.prospectClient.producerId, producerFilter) : undefined,
-    lob ? eq(schema.prospectClient.lob, lob as "General" | "Medical" | "Motor") : undefined,
-    status ? eq(schema.prospectClient.status, status as "prospect" | "converted" | "inactive") : undefined,
-    q
-      ? or(
-          ilike(schema.prospectClient.clientName, `%${q}%`),
-          ilike(schema.producer.name, `%${q}%`),
-          ilike(schema.insuranceCompany.name, `%${q}%`),
-        )
-      : undefined,
-  );
-
-  const [rows, [{ total }]] = await Promise.all([
-    db
-      .select({
-        ...getTableColumns(schema.prospectClient),
-        producerName: schema.producer.name,
-        insurerName: schema.insuranceCompany.name,
-      })
-      .from(schema.prospectClient)
-      .leftJoin(schema.producer, eq(schema.prospectClient.producerId, schema.producer.id))
-      .leftJoin(schema.insuranceCompany, eq(schema.prospectClient.currentInsurerId, schema.insuranceCompany.id))
-      .where(where)
-      .orderBy(order, asc(schema.prospectClient.id))
-      .limit(pageSize)
-      .offset(page * pageSize),
-    db
-      .select({ total: count() })
-      .from(schema.prospectClient)
-      .leftJoin(schema.producer, eq(schema.prospectClient.producerId, schema.producer.id))
-      .leftJoin(schema.insuranceCompany, eq(schema.prospectClient.currentInsurerId, schema.insuranceCompany.id))
-      .where(where),
-  ]);
-
-  return Response.json({ rows, total });
+  return Response.json(producerFilter ? await query.where(eq(schema.prospectClient.producerId, producerFilter)) : await query);
 }
-
-const SORT_COLUMNS: Record<string, AnyColumn> = {
-  clientName: schema.prospectClient.clientName,
-  producer: schema.producer.name,
-  premiums: schema.prospectClient.premiums,
-  month: schema.prospectClient.month,
-  lob: schema.prospectClient.lob,
-  insurerName: schema.insuranceCompany.name,
-  status: schema.prospectClient.status,
-};
 
 export async function POST(request: Request) {
   const session = await getSession(request);

@@ -54,6 +54,7 @@ export default function UsersPage() {
   const t = useTranslations("users");
   const tc = useTranslations("common");
   const tu = useTranslations("user");
+  const ts = useTranslations("status");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<UserRow | null>(null);
 
@@ -158,6 +159,7 @@ export default function UsersPage() {
       {
         accessorKey: "role",
         header: t("colRole"),
+        meta: { filterLabel: (v) => tu(`roles.${v}`) },
         size: 110,
         cell: ({ getValue }) => {
           const r = getValue() as string;
@@ -167,6 +169,7 @@ export default function UsersPage() {
       {
         id: "status",
         header: t("colStatus"),
+        meta: { filterLabel: (v) => ts(v) },
         size: 110,
         accessorFn: (row) => (row.banned ? "Deactivated" : "Active"),
         cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
@@ -223,7 +226,7 @@ export default function UsersPage() {
           ]
         : []),
     ],
-    [isAdmin, currentUser.id, toggleBanMutation, deleteMutation, t, tc, tu],
+    [isAdmin, currentUser.id, toggleBanMutation, deleteMutation, t, tc, tu, ts],
   );
 
   return (

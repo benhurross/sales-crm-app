@@ -12,14 +12,15 @@ test.describe("leads CRUD", () => {
     await page.goto("/leads");
     await expect(page.getByRole("table")).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: /add lead/i }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    const form = page.getByRole("dialog");
+    await expect(form).toBeVisible();
 
-    await page.getByLabel("Prospect Name").fill("New E2E Lead");
-    await page.locator("#producerId").selectOption({ index: 1 });
-    await page.getByLabel("Estimated Premium").fill("100000");
-    await page.getByLabel("City").clear();
-    await page.getByLabel("City").fill("Jeddah");
-    await page.getByRole("button", { name: "Save" }).click();
+    await form.getByLabel("Prospect Name").fill("New E2E Lead");
+    await form.locator("#producerId").selectOption({ index: 1 });
+    await form.getByLabel("Estimated Premium").fill("100000");
+    await form.getByLabel("City").clear();
+    await form.getByLabel("City").fill("Jeddah");
+    await form.getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByText("Lead created")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("cell", { name: "New E2E Lead" }).first()).toBeVisible();
@@ -31,33 +32,44 @@ test.describe("leads CRUD", () => {
 
     const row = page.getByRole("row").filter({ hasText: "Beta Industries" });
     await row.getByRole("button").first().click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    const form = page.getByRole("dialog");
+    await expect(form).toBeVisible();
 
-    await page.getByLabel("Prospect Name").clear();
-    await page.getByLabel("Prospect Name").fill("Beta Industries Updated");
-    await page.getByRole("button", { name: "Save" }).click();
+    await form.getByLabel("Prospect Name").clear();
+    await form.getByLabel("Prospect Name").fill("Beta Industries Updated");
+    await form.getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByText("Lead updated")).toBeVisible({ timeout: 10_000 });
   });
 
-  test("filters leads by status", async ({ adminPage: page }) => {
+  test("filters leads by status from the column header", async ({ adminPage: page }) => {
     await page.goto("/leads");
     await expect(page.getByRole("table")).toBeVisible({ timeout: 15_000 });
 
-    await page.getByLabel("Status").selectOption("Secured");
+    await page.getByRole("button", { name: "Filter Status" }).click();
+    const menu = page.getByRole("dialog");
+    await menu.getByText("(Select all)").click();
+    await menu.getByText("Secured", { exact: true }).click();
+    await page.keyboard.press("Escape");
     await expect(page.getByRole("cell", { name: "Pending", exact: true })).toHaveCount(0);
     await expect(page.getByRole("cell", { name: "Secured", exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/\d+ of \d+ rows/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Clear all filters" }).click();
+    await expect(page.getByText(/^\d+ rows$/)).toBeVisible();
   });
 
-  test("filters leads by producer and pages through results", async ({ adminPage: page }) => {
+  test("filters leads by producer from the column header", async ({ adminPage: page }) => {
     await page.goto("/leads");
     await expect(page.getByRole("table")).toBeVisible({ timeout: 15_000 });
-    const producer = page.getByLabel("Producer");
-    await expect(producer).toBeVisible();
-    const name = await producer.locator("option").nth(1).textContent();
-    await producer.selectOption({ index: 1 });
-    const producerCells = page.locator("tbody tr td:nth-child(3)");
-    await expect(producerCells.first()).toHaveText(name!);
+    const producerCells = page.locator("tbody tr td:nth-child(2)");
+    const name = (await producerCells.first().textContent())!;
+
+    await page.getByRole("button", { name: "Filter Producer" }).click();
+    const menu = page.getByRole("dialog");
+    await menu.getByText("(Select all)").click();
+    await menu.getByText(name, { exact: true }).click();
+    await page.keyboard.press("Escape");
     for (const text of await producerCells.allTextContents()) expect(text).toBe(name);
   });
 
@@ -71,16 +83,13 @@ test.describe("leads CRUD", () => {
     }
   });
 
-  test("pages forward and back", async ({ adminPage: page }) => {
+  test("shows all leads in one scrollable table with the Main Data columns", async ({ adminPage: page }) => {
     await page.goto("/leads");
-    await expect(page.getByRole("table")).toBeVisible({ timeout: 15_000 });
-    const pager = page.getByText(/^Page \d+ of \d+/);
-    if (!(await pager.isVisible())) test.skip(true, "seed data fits on one page");
-    await expect(pager).toContainText("Page 1 of");
-    await page.getByRole("button", { name: "Next page" }).click();
-    await expect(pager).toContainText("Page 2 of");
-    await page.getByRole("button", { name: "Previous page" }).click();
-    await expect(pager).toContainText("Page 1 of");
+    const header = page.locator("thead");
+    await expect(header).toBeVisible({ timeout: 15_000 });
+    for (const title of ["Producer", "Prospect Name", "Start Working Date", "RFQ Type", "COB", "BOR", "Quoted", "Status", "Estimated Premium", "Commission", "Current Insurer"])
+      await expect(header.getByText(title, { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Next page" })).toHaveCount(0);
   });
 
   test("table has fixed headers", async ({ adminPage: page }) => {

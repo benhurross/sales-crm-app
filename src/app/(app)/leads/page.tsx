@@ -53,10 +53,6 @@ export default function LeadsPage() {
   const locale = useLocale();
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [cobFilter, setCobFilter] = useState("");
-  const [rfqFilter, setRfqFilter] = useState("");
-  const [producerFilter, setProducerFilter] = useState("");
   const [rowSelection, setRowSelection] = useState<Record<string, true>>({});
   const [formOpen, setFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -87,33 +83,6 @@ export default function LeadsPage() {
     queryKey: ["leads"],
     queryFn: () => fetch("/api/leads").then((r) => r.json()),
   });
-
-  const filtered = useMemo(() => {
-    let result = leads;
-    if (statusFilter) result = result.filter((l) => l.status === statusFilter);
-    if (cobFilter) result = result.filter((l) => l.cob === cobFilter);
-    if (rfqFilter) result = result.filter((l) => l.rfqType === rfqFilter);
-    if (producerFilter) result = result.filter((l) => l.producerId === Number(producerFilter));
-    return result;
-  }, [leads, statusFilter, cobFilter, rfqFilter, producerFilter]);
-
-  const producerOptions = useMemo(
-    () =>
-      [...new Map(leads.map((l) => [l.producerId, l.producerName ?? `#${l.producerId}`])).entries()].sort((a, b) =>
-        a[1].localeCompare(b[1]),
-      ),
-    [leads],
-  );
-  const showProducerFilter = hasRole(user.role, "manager");
-
-  // Selection keys are positions in `filtered`, so a filter change must clear them.
-  function changeFilter(set: (value: string) => void) {
-    return (value: string) => {
-      set(value);
-      setRowSelection({});
-    };
-  }
-  const hasFilters = statusFilter || cobFilter || rfqFilter || producerFilter || search;
 
   const saveMutation = useMutation({
     mutationFn: async (values: LeadFormValues & { id?: number }) => {
@@ -156,7 +125,7 @@ export default function LeadsPage() {
 
   const bulkMutation = useMutation({
     mutationFn: async (status: string) => {
-      const ids = Object.keys(rowSelection).map((idx) => filtered[Number(idx)].id);
+      const ids = Object.keys(rowSelection).map((idx) => leads[Number(idx)].id);
       const res = await fetch("/api/leads/bulk", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -189,8 +158,12 @@ export default function LeadsPage() {
 
   const selectedCount = Object.keys(rowSelection).length;
 
-  const columns = useMemo<LegacyColumnDef<Lead, unknown>[]>(
-    () => [
+  const columns = useMemo<LegacyColumnDef<Lead, unknown>[]>(() => {
+    const check = (on: unknown) =>
+      on ? <Check className="size-4 text-emerald-500" /> : <X className="size-4 text-muted-foreground/40" />;
+    const yesNo = (v: string) => (v === "true" ? tc("yes") : tc("no"));
+    const date = (v: unknown) => (v ? formatDate(v as string, locale) : "--");
+    return [
       {
         id: "select",
         size: 40,
@@ -199,58 +172,54 @@ export default function LeadsPage() {
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
             onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+            aria-label={t("selectAll")}
           />
         ),
-        cell: ({ row }) => (
-          <Checkbox checked={row.getIsSelected()} onCheckedChange={(v) => row.toggleSelected(!!v)} />
-        ),
+        cell: ({ row }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={(v) => row.toggleSelected(!!v)} />,
       },
+      { id: "producer", header: t("colProducer"), accessorFn: (row) => row.producerName, size: 160 },
       { accessorKey: "prospectName", header: t("colProspect") },
-      {
-        id: "producer",
-        header: t("colProducer"),
-        accessorFn: (row) => row.producerName,
-        size: 160,
-      },
-      {
-        accessorKey: "startWorkingDate",
-        header: t("colDate"),
-        size: 110,
-        cell: ({ getValue }) => formatDate(getValue() as string, locale),
-      },
-      { accessorKey: "rfqType", header: t("colRfq"), size: 80, cell: ({ getValue }) => tRfq(getValue() as string) },
-      { accessorKey: "cob", header: t("colCob"), size: 90, cell: ({ getValue }) => tCob(getValue() as string) },
+      { accessorKey: "startWorkingDate", header: t("colDate"), size: 150, meta: { filter: "month" }, cell: ({ getValue }) => date(getValue()) },
+      { accessorKey: "rfqType", header: t("colRfq"), size: 110, meta: { filterLabel: (v) => tRfq(v) }, cell: ({ getValue }) => tRfq(getValue() as string) },
+      { accessorKey: "cob", header: t("colCob"), size: 100, meta: { filterLabel: (v) => tCob(v) }, cell: ({ getValue }) => tCob(getValue() as string) },
+      { accessorKey: "bor", header: t("colBor"), size: 80, meta: { filterLabel: yesNo }, cell: ({ getValue }) => check(getValue()) },
+      { accessorKey: "quoted", header: t("colQuoted"), size: 90, meta: { filterLabel: yesNo }, cell: ({ getValue }) => check(getValue()) },
       {
         accessorKey: "status",
         header: t("colStatus"),
-        size: 100,
+        size: 110,
+        meta: { filterLabel: (v) => ts(v) },
         cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
       },
       {
         accessorKey: "estimatedPremium",
         header: t("colPremium"),
-        size: 130,
+        size: 150,
+        meta: { filter: "range" },
         cell: ({ getValue }) => formatAmount(Number(getValue())),
         sortingFn: (a: { original: Lead }, b: { original: Lead }) => Number(a.original.estimatedPremium) - Number(b.original.estimatedPremium),
       },
+      {
+        accessorKey: "commission",
+        header: t("colCommission"),
+        size: 130,
+        meta: { filter: "range" },
+        cell: ({ getValue }) => (getValue() ? formatAmount(Number(getValue())) : "--"),
+        sortingFn: (a: { original: Lead }, b: { original: Lead }) => Number(a.original.commission ?? 0) - Number(b.original.commission ?? 0),
+      },
+      { accessorKey: "insurerName", header: t("colInsurer"), size: 140, cell: ({ getValue }) => getValue() || "--" },
       { accessorKey: "city", header: t("colCity"), size: 100 },
+      { accessorKey: "borTimestamp", header: t("colBorDate"), size: 130, meta: { filter: "month" }, cell: ({ getValue }) => date(getValue()) },
+      { accessorKey: "quoteTimestamp", header: t("colQuoteDate"), size: 130, meta: { filter: "month" }, cell: ({ getValue }) => date(getValue()) },
       {
-        accessorKey: "bor",
-        header: t("colBor"),
-        size: 60,
-        cell: ({ getValue }) => getValue() ? <Check className="size-4 text-emerald-500" /> : <X className="size-4 text-muted-foreground/40" />,
-      },
-      {
-        accessorKey: "quoted",
-        header: t("colQuoted"),
-        size: 70,
-        cell: ({ getValue }) => getValue() ? <Check className="size-4 text-emerald-500" /> : <X className="size-4 text-muted-foreground/40" />,
-      },
-      {
-        accessorKey: "insurerName",
-        header: t("colInsurer"),
-        size: 120,
-        cell: ({ getValue }) => getValue() || "--",
+        accessorKey: "comments",
+        header: t("colComments"),
+        size: 200,
+        enableColumnFilter: false,
+        cell: ({ getValue }) => {
+          const v = getValue() as string | null;
+          return v ? <span className="block max-w-[240px] truncate" title={v}>{v}</span> : "--";
+        },
       },
       {
         id: "actions",
@@ -275,9 +244,8 @@ export default function LeadsPage() {
           </div>
         ),
       },
-    ],
-    [deleteMutation, t, tc, tRfq, tCob, locale],
-  );
+    ];
+  }, [deleteMutation, t, tc, ts, tRfq, tCob, locale]);
 
   const editDefaults: Partial<LeadFormValues> | undefined = convertDefaults
     ? convertDefaults
@@ -317,33 +285,8 @@ export default function LeadsPage() {
           <Search className="absolute start-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input placeholder={t("search")} className="h-9 w-56 ps-8" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        {showProducerFilter && (
-          <select aria-label={t("colProducer")} className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={producerFilter} onChange={(e) => changeFilter(setProducerFilter)(e.target.value)}>
-            <option value="">{tc("allProducers")}</option>
-            {producerOptions.map(([id, name]) => (
-              <option key={id} value={id}>{name}</option>
-            ))}
-          </select>
-        )}
-        <select aria-label={t("colStatus")} className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={statusFilter} onChange={(e) => changeFilter(setStatusFilter)(e.target.value)}>
-          <option value="">{t("allStatus")}</option>
-          <option value="Secured">{ts("Secured")}</option>
-          <option value="Pending">{ts("Pending")}</option>
-          <option value="Lost">{ts("Lost")}</option>
-        </select>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={cobFilter} onChange={(e) => changeFilter(setCobFilter)(e.target.value)} aria-label={t("colCob")}>
-          <option value="">{t("allCob")}</option>
-          <option value="General">{tCob("General")}</option>
-          <option value="Medical">{tCob("Medical")}</option>
-          <option value="Motor">{tCob("Motor")}</option>
-        </select>
-        <select className="flex h-9 rounded-md border border-input bg-popover px-3 text-sm shadow-sm" value={rfqFilter} onChange={(e) => changeFilter(setRfqFilter)(e.target.value)} aria-label={t("colRfq")}>
-          <option value="">{t("allRfq")}</option>
-          <option value="New">{tRfq("New")}</option>
-          <option value="Renewal">{tRfq("Renewal")}</option>
-        </select>
-        {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={() => { setStatusFilter(""); setCobFilter(""); setRfqFilter(""); setProducerFilter(""); setSearch(""); setRowSelection({}); }}>
+        {search && (
+          <Button variant="ghost" size="sm" onClick={() => setSearch("")}>
             {tc("clearFilters")}
           </Button>
         )}
@@ -363,7 +306,7 @@ export default function LeadsPage() {
       ) : (
         <DataTable
           columns={columns}
-          data={filtered}
+          data={leads}
           globalFilter={search}
           onGlobalFilterChange={setSearch}
           enableRowSelection

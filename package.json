@@ -22,13 +22,15 @@
     "user:password": "tsx --env-file-if-exists=.env.local scripts/set-password.ts",
     "etl": "tsx --env-file-if-exists=.env.local scripts/etl.ts",
     "db:link": "tsx --env-file-if-exists=.env.local scripts/link-prospects.ts",
-    "db:repair": "tsx --env-file-if-exists=.env.local scripts/repair-links.ts"
+    "db:repair": "tsx --env-file-if-exists=.env.local scripts/repair-links.ts",
+    "db:sync": "tsx --env-file-if-exists=.env.local scripts/sync-sheet.ts"
   },
   "dependencies": {
     "@emran-alhaddad/saudi-riyal-font": "^1.0.0",
     "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.104.0",
     "@tanstack/react-table": "^9.2.4",
+    "@tanstack/react-virtual": "^3.14.26",
     "better-auth": "^1.7.6",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",

@@ -95,7 +95,7 @@ export default function InsurersPage() {
 
   const columns = useMemo<LegacyColumnDef<Insurer, unknown>[]>(
     () => [
-      { accessorKey: "id", header: "ID", size: 60 },
+      { accessorKey: "id", header: "ID", size: 80, meta: { filter: "range" } },
       { accessorKey: "name", header: t("colName") },
       ...(isAdmin
         ? [

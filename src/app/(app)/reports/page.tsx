@@ -108,18 +108,21 @@ export default function ReportsPage() {
       { accessorKey: "name", header: t("colProducer"), size: 160 },
       {
         accessorKey: "totalLeads",
+        meta: { filter: "range" },
         header: t("colLeads"),
         size: 70,
         cell: ({ getValue }) => (getValue() as number).toLocaleString(),
       },
       {
         accessorKey: "borCount",
+        meta: { filter: "range" },
         header: t("colBor"),
         size: 60,
         cell: ({ getValue }) => (getValue() as number).toLocaleString(),
       },
       {
         accessorKey: "securedCount",
+        meta: { filter: "range" },
         header: ts("Secured"),
         size: 80,
         cell: ({ getValue }) => (
@@ -130,6 +133,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "pendingCount",
+        meta: { filter: "range" },
         header: ts("Pending"),
         size: 80,
         cell: ({ getValue }) => (
@@ -140,6 +144,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "lostCount",
+        meta: { filter: "range" },
         header: ts("Lost"),
         size: 60,
         cell: ({ getValue }) => (
@@ -150,6 +155,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "securedPremium",
+        meta: { filter: "range" },
         header: t("colSecuredPremium"),
         size: 140,
         cell: ({ getValue }) => formatAmount(getValue() as number),
@@ -158,6 +164,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "totalPremium",
+        meta: { filter: "range" },
         header: t("colTotalPremium"),
         size: 140,
         cell: ({ getValue }) => formatAmount(getValue() as number),
@@ -166,6 +173,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "annualTarget",
+        meta: { filter: "range" },
         header: t("colTarget"),
         size: 130,
         cell: ({ getValue }) => formatAmount(getValue() as number),
@@ -174,6 +182,7 @@ export default function ReportsPage() {
       },
       {
         accessorKey: "achievementPct",
+        meta: { filter: "range" },
         header: t("colAchievement"),
         size: 120,
         cell: ({ getValue }) => {

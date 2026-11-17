@@ -73,6 +73,7 @@ export default function TargetsPage() {
       { accessorKey: "region", header: t("colRegion"), size: 90 },
       {
         accessorKey: "annualTarget",
+        meta: { filter: "range" },
         header: t("colAnnual"),
         cell: ({ row }) => {
           if (editingId === row.original.id) {
@@ -93,6 +94,7 @@ export default function TargetsPage() {
       },
       {
         accessorKey: "monthlyTarget",
+        meta: { filter: "range" },
         header: t("colMonthly"),
         cell: ({ row }) => {
           if (editingId === row.original.id) {
@@ -114,6 +116,8 @@ export default function TargetsPage() {
       {
         id: "secured",
         header: t("colSecured"),
+        accessorFn: (row) => Number(row.securedPremium),
+        meta: { filter: "range" },
         cell: ({ row }) => formatAmount(Number(row.original.securedPremium)),
         sortingFn: (a: { original: ProducerTarget }, b: { original: ProducerTarget }) =>
           Number(a.original.securedPremium) - Number(b.original.securedPremium),
@@ -121,6 +125,8 @@ export default function TargetsPage() {
       {
         id: "achievement",
         header: t("colAchievement"),
+        accessorFn: (row) => achievementPct(row.securedPremium, row.annualTarget),
+        meta: { filter: "range" },
         size: 180,
         cell: ({ row }) => {
           const pct = achievementPct(row.original.securedPremium, row.original.annualTarget);
