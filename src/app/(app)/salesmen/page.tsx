@@ -31,6 +31,7 @@ interface Producer {
   annualTarget: string;
   monthlyTarget: string;
   joinDate: string | null;
+  leavingDate: string | null;
 }
 
 const schema = z.object({
@@ -40,6 +41,7 @@ const schema = z.object({
   title: z.string().optional(),
   employmentStatus: z.enum(["Active", "Resigned", "Transferred"]),
   joinDate: z.string().optional(),
+  leavingDate: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -125,6 +127,7 @@ export default function SalesmenPage() {
         size: 120,
         cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
       },
+      { accessorKey: "leavingDate", header: t("leavingDate"), meta: { filter: "month" }, size: 110, cell: ({ getValue }) => (getValue() as string) || "--" },
       ...(canEdit
         ? [
             {
@@ -177,7 +180,7 @@ export default function SalesmenPage() {
         open={dialogOpen}
         onOpenChange={(o) => { if (!o) closeDialog(); }}
         editing={editing}
-        onSubmit={(values) => mutation.mutate({ ...values, id: editing?.id })}
+        onSubmit={(values) => mutation.mutate({ ...values, leavingDate: values.employmentStatus === "Active" ? "" : values.leavingDate, id: editing?.id })}
         isPending={mutation.isPending}
       />
     </div>
@@ -204,9 +207,10 @@ function SalesmanFormDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     values: editing
-      ? { name: editing.name, email: editing.email ?? "", region: editing.region, title: editing.title ?? "", employmentStatus: editing.employmentStatus as FormValues["employmentStatus"], joinDate: editing.joinDate ?? "" }
-      : { name: "", email: "", region: "Jeddah", title: "", employmentStatus: "Active", joinDate: "" },
+      ? { name: editing.name, email: editing.email ?? "", region: editing.region, title: editing.title ?? "", employmentStatus: editing.employmentStatus as FormValues["employmentStatus"], joinDate: editing.joinDate ?? "", leavingDate: editing.leavingDate ?? "" }
+      : { name: "", email: "", region: "Jeddah", title: "", employmentStatus: "Active", joinDate: "", leavingDate: "" },
   });
+  const active = form.watch("employmentStatus") === "Active";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -245,6 +249,13 @@ function SalesmanFormDialog({
             <Label htmlFor="joinDate">{t("joinDate")}</Label>
             <Input id="joinDate" type="date" {...form.register("joinDate")} />
           </div>
+          {!active && (
+            <div className="col-span-2 space-y-1.5">
+              <Label htmlFor="leavingDate">{t("leavingDate")}</Label>
+              <Input id="leavingDate" type="date" {...form.register("leavingDate")} />
+              <p className="text-xs text-muted-foreground">{t("leavingDateHint")}</p>
+            </div>
+          )}
         </form>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{tc("cancel")}</Button>

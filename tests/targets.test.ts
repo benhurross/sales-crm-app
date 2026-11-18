@@ -69,9 +69,9 @@ describe("progressColor", () => {
 
 describe("rankBySecured", () => {
   const producers: ProducerTarget[] = [
-    { id: 1, code: "J-1", name: "Alice", region: "Jeddah", employmentStatus: "Active", annualTarget: "1000000", monthlyTarget: "83333", securedPremium: "200000", securedCount: 5, totalLeads: 10 },
-    { id: 2, code: "J-2", name: "Bob", region: "Jeddah", employmentStatus: "Active", annualTarget: "800000", monthlyTarget: "66667", securedPremium: "500000", securedCount: 8, totalLeads: 12 },
-    { id: 3, code: "R-1", name: "Charlie", region: "Riyadh", employmentStatus: "Active", annualTarget: "1200000", monthlyTarget: "100000", securedPremium: "300000", securedCount: 3, totalLeads: 7 },
+    { id: 1, code: "J-1", name: "Alice", region: "Jeddah", employmentStatus: "Active", leavingDate: null, annualTarget: "1000000", monthlyTarget: "83333", securedPremium: "200000", securedCount: 5, totalLeads: 10 },
+    { id: 2, code: "J-2", name: "Bob", region: "Jeddah", employmentStatus: "Active", leavingDate: null, annualTarget: "800000", monthlyTarget: "66667", securedPremium: "500000", securedCount: 8, totalLeads: 12 },
+    { id: 3, code: "R-1", name: "Charlie", region: "Riyadh", employmentStatus: "Active", leavingDate: null, annualTarget: "1200000", monthlyTarget: "100000", securedPremium: "300000", securedCount: 3, totalLeads: 7 },
   ];
 
   it("sorts by secured premium descending", () => {

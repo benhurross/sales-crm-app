@@ -6,6 +6,7 @@ import {
   paceStatus,
   producerLeaderboard,
   teamTarget,
+  yearTarget,
   yearElapsed,
   pipelineAging,
   statusBreakdown,
@@ -177,6 +178,7 @@ describe("producerLeaderboard", () => {
         { id: 3, name: "C", annualTarget: "0" },
         { id: 4, name: "D", annualTarget: "50" },
       ],
+      2026,
     );
     expect(rows.map((r) => r.name)).toEqual(["B", "A", "D"]);
     expect(rows[0]).toMatchObject({ leads: 2, closed: 1, winRate: 1, pipeline: 70, achievement: 0 });
@@ -194,16 +196,30 @@ describe("paceStatus and yearElapsed", () => {
   });
 });
 
-describe("teamTarget", () => {
-  it("counts only active salesmen's targets", () => {
+describe("yearTarget and teamTarget", () => {
+  it("counts active salesmen in full and former salesmen up to their leaving date", () => {
     expect(
-      teamTarget([
-        { annualTarget: "10000000", employmentStatus: "Active" },
-        { annualTarget: "5000000", employmentStatus: "Resigned" },
-        { annualTarget: "9000000", employmentStatus: "Transferred" },
-        { annualTarget: "2000000" },
-      ]),
+      teamTarget(
+        [
+          { annualTarget: "10000000", employmentStatus: "Active" },
+          { annualTarget: "5000000", employmentStatus: "Resigned" },
+          { annualTarget: "9000000", employmentStatus: "Transferred" },
+          { annualTarget: "2000000" },
+        ],
+        2026,
+      ),
     ).toBe(12_000_000);
+  });
+
+  it("prorates a former salesman's target by the share of the year worked", () => {
+    const left = (leavingDate: string) => ({ annualTarget: "3650000", employmentStatus: "Resigned", leavingDate });
+    // 2026 has 365 days: the leaving day counts as worked
+    expect(yearTarget(left("2026-01-01"), 2026)).toBeCloseTo(10_000);
+    expect(yearTarget(left("2026-06-30"), 2026)).toBeCloseTo(1_810_000);
+    expect(yearTarget(left("2026-12-31"), 2026)).toBeCloseTo(3_650_000);
+    expect(yearTarget(left("2025-11-30"), 2026)).toBe(0);
+    expect(yearTarget(left("2027-03-01"), 2026)).toBe(3_650_000);
+    expect(yearTarget({ ...left("2026-06-30"), employmentStatus: "Active" }, 2026)).toBe(3_650_000);
   });
 
   it("leaves former salesmen with no leads out of the leaderboard", () => {
@@ -213,8 +229,11 @@ describe("teamTarget", () => {
         { id: 1, name: "Active", annualTarget: "1000", employmentStatus: "Active" },
         { id: 2, name: "Gone with leads", annualTarget: "1000", employmentStatus: "Resigned" },
         { id: 3, name: "Gone", annualTarget: "1000", employmentStatus: "Resigned" },
+        { id: 4, name: "Left in June", annualTarget: "1000", employmentStatus: "Resigned", leavingDate: "2026-06-30" },
       ],
+      2026,
     );
-    expect(rows.map((r) => r.name)).toEqual(["Gone with leads", "Active"]);
+    expect(rows.map((r) => r.name)).toEqual(["Gone with leads", "Active", "Left in June"]);
+    expect(rows[2].target).toBeCloseTo(495.89, 2);
   });
 });

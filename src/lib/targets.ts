@@ -4,6 +4,7 @@ export interface ProducerTarget {
   name: string;
   region: string;
   employmentStatus: string;
+  leavingDate: string | null;
   annualTarget: string;
   monthlyTarget: string;
   securedPremium: string;

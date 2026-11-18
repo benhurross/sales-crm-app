@@ -1,0 +1,1 @@
+ALTER TABLE "producer" ADD COLUMN "leaving_date" date;

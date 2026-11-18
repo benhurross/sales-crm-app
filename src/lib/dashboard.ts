@@ -140,26 +140,41 @@ export interface LeaderboardRow {
   achievement: number;
 }
 
-type ProducerTarget = { annualTarget: string; employmentStatus?: string };
+type ProducerTarget = { annualTarget: string; employmentStatus?: string; leavingDate?: string | null };
 
 const isActive = (p: { employmentStatus?: string }) => (p.employmentStatus ?? "Active") === "Active";
 
-/** The team's annual target: active salesmen only, as the mastersheet's Targets tab counts it. */
-export function teamTarget(producers: ProducerTarget[]): number {
-  return producers.filter(isActive).reduce((sum, p) => sum + Number(p.annualTarget), 0);
+/**
+ * The part of a salesman's annual target that falls in `year`: all of it while they are active,
+ * and the share of the year up to their leaving date once they resign or transfer (none without a date).
+ */
+export function yearTarget(p: ProducerTarget, year: number): number {
+  const annual = Number(p.annualTarget);
+  if (isActive(p)) return annual;
+  if (!p.leavingDate) return 0;
+  const start = Date.UTC(year, 0, 1);
+  const end = Date.UTC(year + 1, 0, 1);
+  const worked = (Date.parse(p.leavingDate) + DAY_MS - start) / (end - start);
+  return annual * Math.min(1, Math.max(0, worked));
 }
 
-/** Salesmen with leads, plus active salesmen with a target, ranked by secured premium. */
+/** The team's target for `year`: active salesmen in full, former salesmen up to their leaving date. */
+export function teamTarget(producers: ProducerTarget[], year: number): number {
+  return producers.reduce((sum, p) => sum + yearTarget(p, year), 0);
+}
+
+/** Salesmen with leads or a target this year, ranked by secured premium. */
 export function producerLeaderboard(
   leads: DashboardLead[],
   producers: ({ id: number; name: string } & ProducerTarget)[],
+  year: number,
 ): LeaderboardRow[] {
   const byProducer = new Map<number, DashboardLead[]>();
   for (const l of leads) byProducer.set(l.producerId, [...(byProducer.get(l.producerId) ?? []), l]);
   return producers
     .map((p) => {
       const k = computeKpis(byProducer.get(p.id) ?? []);
-      const target = Number(p.annualTarget);
+      const target = yearTarget(p, year);
       return {
         id: p.id,
         name: p.name,
@@ -172,7 +187,7 @@ export function producerLeaderboard(
         achievement: target > 0 ? k.securedPremium / target : 0,
       };
     })
-    .filter((p, i) => p.leads > 0 || (p.target > 0 && isActive(producers[i])))
+    .filter((p) => p.leads > 0 || p.target > 0)
     .sort((a, b) => b.secured - a.secured || b.leads - a.leads);
 }
 

@@ -202,7 +202,7 @@ export async function buildDashboardHtml(data: DashboardData, filters: Dashboard
     .reduce((t, p) => ({ total: t.total + p.total, converted: t.converted + p.converted, premiums: t.premiums + p.premiums }), { total: 0, converted: 0, premiums: 0 });
 
   const k = computeKpis(leads);
-  const target = teamTarget(producers);
+  const target = teamTarget(producers, today.getFullYear());
   const achievement = target > 0 ? k.securedPremium / target : 0;
   const pace = yearElapsed(today);
   const status = paceStatus(achievement, pace);
@@ -211,7 +211,7 @@ export async function buildDashboardHtml(data: DashboardData, filters: Dashboard
   const cob = statusBreakdown(leads, (l) => l.cob);
   const aging = pipelineAging(leads, today);
   const volume = monthlyVolume(leads);
-  const board = producerLeaderboard(leads, producers);
+  const board = producerLeaderboard(leads, producers, today.getFullYear());
 
   const kpi = (label: string, value: string, note: string, progress?: number) =>
     `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div>${

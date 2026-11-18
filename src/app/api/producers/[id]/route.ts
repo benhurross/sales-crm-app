@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/producer
     return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
-  const { email, title, joinDate, userId, ...rest } = await request.json();
+  const { email, title, joinDate, leavingDate, userId, ...rest } = await request.json();
 
   const [row] = await db
     .update(schema.producer)
@@ -22,6 +22,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/producer
       email: email || null,
       title: title || null,
       joinDate: joinDate || null,
+      leavingDate: leavingDate || null,
       userId: userId || null,
       updatedAt: new Date(),
     })

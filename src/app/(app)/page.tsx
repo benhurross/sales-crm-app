@@ -56,7 +56,7 @@ function useMonthLabel() {
 
 interface DashboardData {
   leads: DashboardLead[];
-  producers: { id: number; name: string; annualTarget: string; employmentStatus: string }[];
+  producers: { id: number; name: string; annualTarget: string; employmentStatus: string; leavingDate: string | null }[];
   prospects: { producerId: number; total: number; converted: number; premiums: number }[];
 }
 
@@ -100,13 +100,13 @@ export default function DashboardPage() {
     return totals;
   }, [data, producerFilter]);
 
+  const [today] = useState(() => new Date());
   const annualTarget = useMemo(
     () =>
-      teamTarget((data?.producers ?? []).filter((p) => !producerFilter || p.id === Number(producerFilter))),
-    [data, producerFilter],
+      teamTarget((data?.producers ?? []).filter((p) => !producerFilter || p.id === Number(producerFilter)), today.getFullYear()),
+    [data, producerFilter, today],
   );
   const targetAchievement = annualTarget > 0 ? kpis.securedPremium / annualTarget : 0;
-  const [today] = useState(() => new Date());
   const yearPace = yearElapsed(today);
   const pace = paceStatus(targetAchievement, yearPace);
 
@@ -123,8 +123,8 @@ export default function DashboardPage() {
   const aging = useMemo(() => pipelineAging(filtered, today), [filtered, today]);
   const volume = useMemo(() => monthlyVolume(filtered), [filtered]);
   const leaderboard = useMemo(
-    () => producerLeaderboard(filtered, (data?.producers ?? []).filter((p) => !producerFilter || p.id === Number(producerFilter))),
-    [data, filtered, producerFilter],
+    () => producerLeaderboard(filtered, (data?.producers ?? []).filter((p) => !producerFilter || p.id === Number(producerFilter)), today.getFullYear()),
+    [data, filtered, producerFilter, today],
   );
 
   if (isLoading) {

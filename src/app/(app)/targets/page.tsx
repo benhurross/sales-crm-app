@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { yearTarget } from "@/lib/dashboard";
 import { formatAmount } from "@/lib/format";
 import { hasRole } from "@/lib/permissions";
 import {
@@ -21,6 +22,9 @@ import {
   rankBySecured,
   type ProducerTarget,
 } from "@/lib/targets";
+
+// targets and achievement are for the current calendar year
+const YEAR = new Date().getFullYear();
 
 export default function TargetsPage() {
   const user = useCurrentUser();
@@ -125,11 +129,11 @@ export default function TargetsPage() {
       {
         id: "achievement",
         header: t("colAchievement"),
-        accessorFn: (row) => achievementPct(row.securedPremium, row.annualTarget),
+        accessorFn: (row) => achievementPct(row.securedPremium, yearTarget(row, YEAR)),
         meta: { filter: "range" },
         size: 180,
         cell: ({ row }) => {
-          const pct = achievementPct(row.original.securedPremium, row.original.annualTarget);
+          const pct = achievementPct(row.original.securedPremium, yearTarget(row.original, YEAR));
           const capped = Math.min(pct, 100);
           return (
             <div className="flex items-center gap-2">

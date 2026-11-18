@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     return apiError(request, "forbidden", 403);
 
   const body = await request.json();
-  const { code, name, email, region, title, employmentStatus, joinDate, userId } = body;
+  const { code, name, email, region, title, employmentStatus, joinDate, leavingDate, userId } = body;
 
   if (!code || !name) return apiError(request, "codeAndNameRequired", 400);
 
@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       title: title || null,
       employmentStatus: employmentStatus || "Active",
       joinDate: joinDate || null,
+      leavingDate: leavingDate || null,
       userId: userId || null,
     })
     .returning();

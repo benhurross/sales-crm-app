@@ -36,6 +36,13 @@
       "when": 1794905088507,
       "tag": "0004_celebrations",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794980552273,
+      "tag": "0005_leaving_date",
+      "breakpoints": true
     }
   ]
 }

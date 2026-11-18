@@ -26,6 +26,7 @@ export async function GET(request: Request) {
       name: schema.producer.name,
       region: schema.producer.region,
       employmentStatus: schema.producer.employmentStatus,
+      leavingDate: schema.producer.leavingDate,
       annualTarget: schema.producer.annualTarget,
       monthlyTarget: schema.producer.monthlyTarget,
       securedPremium: sql<string>`coalesce(${secured.securedPremium}, '0')`,
