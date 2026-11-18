@@ -69,7 +69,6 @@ export const producer = pgTable("producer", {
   region: text().notNull().default("Jeddah"),
   title: text(),
   annualTarget: numeric({ precision: 15, scale: 2 }).notNull().default("0"),
-  monthlyTarget: numeric({ precision: 15, scale: 2 }).notNull().default("0"),
   joinDate: date(),
   /** Last working day of a salesman who resigned or transferred: their target counts up to it. */
   leavingDate: date(),

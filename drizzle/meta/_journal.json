@@ -43,6 +43,13 @@
       "when": 1794980552273,
       "tag": "0005_leaving_date",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795002163680,
+      "tag": "0006_drop_monthly_target",
+      "breakpoints": true
     }
   ]
 }

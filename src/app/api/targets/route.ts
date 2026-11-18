@@ -28,7 +28,6 @@ export async function GET(request: Request) {
       employmentStatus: schema.producer.employmentStatus,
       leavingDate: schema.producer.leavingDate,
       annualTarget: schema.producer.annualTarget,
-      monthlyTarget: schema.producer.monthlyTarget,
       securedPremium: sql<string>`coalesce(${secured.securedPremium}, '0')`,
       securedCount: sql<number>`coalesce(${secured.securedCount}, 0)`,
       totalLeads: sql<number>`coalesce(${secured.totalLeads}, 0)`,

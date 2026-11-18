@@ -6,7 +6,6 @@ export interface ProducerTarget {
   employmentStatus: string;
   leavingDate: string | null;
   annualTarget: string;
-  monthlyTarget: string;
   securedPremium: string;
   securedCount: number;
   totalLeads: number;

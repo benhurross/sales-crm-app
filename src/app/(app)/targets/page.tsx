@@ -40,14 +40,13 @@ export default function TargetsPage() {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editAnnual, setEditAnnual] = useState("");
-  const [editMonthly, setEditMonthly] = useState("");
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, annualTarget, monthlyTarget }: { id: number; annualTarget: string; monthlyTarget: string }) => {
+    mutationFn: async ({ id, annualTarget }: { id: number; annualTarget: string }) => {
       const res = await fetch(`/api/targets/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annualTarget, monthlyTarget }),
+        body: JSON.stringify({ annualTarget }),
       });
       if (!res.ok) throw new Error(tc("failed"));
       return res.json();
@@ -63,12 +62,11 @@ export default function TargetsPage() {
   function startEdit(row: ProducerTarget) {
     setEditingId(row.id);
     setEditAnnual(row.annualTarget);
-    setEditMonthly(row.monthlyTarget);
   }
 
   const saveEdit = useCallback(
-    (id: number) => updateMutation.mutate({ id, annualTarget: editAnnual || "0", monthlyTarget: editMonthly || "0" }),
-    [updateMutation, editAnnual, editMonthly],
+    (id: number) => updateMutation.mutate({ id, annualTarget: editAnnual || "0" }),
+    [updateMutation, editAnnual],
   );
 
   const columns = useMemo<LegacyColumnDef<ProducerTarget, unknown>[]>(
@@ -97,25 +95,15 @@ export default function TargetsPage() {
           Number(a.original.annualTarget) - Number(b.original.annualTarget),
       },
       {
-        accessorKey: "monthlyTarget",
+        id: "monthlyTarget",
+        // always the annual target spread over 12 months, following the one being typed
+        accessorFn: (row) => Number(row.annualTarget) / 12,
         meta: { filter: "range" },
         header: t("colMonthly"),
         cell: ({ row }) => {
-          if (editingId === row.original.id) {
-            return (
-              <Input
-                type="number"
-                className="h-7 w-32"
-                value={editMonthly}
-                onChange={(e) => setEditMonthly(e.target.value)}
-              />
-            );
-          }
-          const v = Number(row.original.monthlyTarget);
+          const v = Number(editingId === row.original.id ? editAnnual : row.original.annualTarget) / 12;
           return v > 0 ? formatAmount(v) : <span className="text-muted-foreground">--</span>;
         },
-        sortingFn: (a: { original: ProducerTarget }, b: { original: ProducerTarget }) =>
-          Number(a.original.monthlyTarget) - Number(b.original.monthlyTarget),
       },
       {
         id: "secured",
@@ -147,8 +135,8 @@ export default function TargetsPage() {
           );
         },
         sortingFn: (a: { original: ProducerTarget }, b: { original: ProducerTarget }) =>
-          achievementPct(a.original.securedPremium, a.original.annualTarget) -
-          achievementPct(b.original.securedPremium, b.original.annualTarget),
+          achievementPct(a.original.securedPremium, yearTarget(a.original, YEAR)) -
+          achievementPct(b.original.securedPremium, yearTarget(b.original, YEAR)),
       },
       ...(canEdit
         ? [
@@ -180,7 +168,7 @@ export default function TargetsPage() {
           ]
         : []),
     ],
-    [canEdit, editingId, editAnnual, editMonthly, saveEdit, t, tc],
+    [canEdit, editingId, editAnnual, saveEdit, t, tc],
   );
 
   const leaderboard = useMemo(() => rankBySecured(targets).slice(0, 10), [targets]);
@@ -203,7 +191,7 @@ export default function TargetsPage() {
               </h2>
               <div className="space-y-3">
                 {leaderboard.map((p, i) => {
-                  const pct = achievementPct(p.securedPremium, p.annualTarget);
+                  const pct = achievementPct(p.securedPremium, yearTarget(p, YEAR));
                   return (
                     <div key={p.id} className="flex items-center gap-3">
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted font-semibold text-sm">

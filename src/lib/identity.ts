@@ -7,7 +7,6 @@ export interface ProducerRecord {
   email: string | null;
   userId: string | null;
   annualTarget: string;
-  monthlyTarget: string;
   records: number; // leads + prospects
 }
 

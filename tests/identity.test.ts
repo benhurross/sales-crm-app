@@ -14,7 +14,6 @@ const producer = (p: Partial<ProducerRecord> & { id: number; name: string }): Pr
   email: null,
   userId: null,
   annualTarget: "0",
-  monthlyTarget: "0",
   records: 0,
   ...p,
 });

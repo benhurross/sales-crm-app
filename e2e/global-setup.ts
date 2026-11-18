@@ -64,10 +64,10 @@ export default async function globalSetup() {
 
   // Seed producers linked to users
   await db.execute(sql`
-    INSERT INTO producer (code, name, employment_status, region, annual_target, monthly_target, user_id) VALUES
-    ('J-1', 'Test Salesman 1', 'Active', 'Jeddah', '1000000', '83333.33', ${userMap["salesman1@test.com"]}),
-    ('R-1', 'Test Salesman 2', 'Active', 'Riyadh', '800000', '66666.67', ${userMap["salesman2@test.com"]}),
-    ('J-2', 'Team Lead', 'Active', 'Jeddah', '500000', '41666.67', NULL)
+    INSERT INTO producer (code, name, employment_status, region, annual_target, user_id) VALUES
+    ('J-1', 'Test Salesman 1', 'Active', 'Jeddah', '1000000', ${userMap["salesman1@test.com"]}),
+    ('R-1', 'Test Salesman 2', 'Active', 'Riyadh', '800000', ${userMap["salesman2@test.com"]}),
+    ('J-2', 'Team Lead', 'Active', 'Jeddah', '500000', NULL)
   `);
 
   // Get producer IDs

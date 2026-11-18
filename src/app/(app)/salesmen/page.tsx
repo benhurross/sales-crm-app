@@ -29,7 +29,6 @@ interface Producer {
   region: string;
   title: string | null;
   annualTarget: string;
-  monthlyTarget: string;
   joinDate: string | null;
   leavingDate: string | null;
 }

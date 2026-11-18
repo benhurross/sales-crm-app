@@ -13,13 +13,12 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/targets/
     return apiError(request, "forbidden", 403);
 
   const { id } = await ctx.params;
-  const { annualTarget, monthlyTarget } = await request.json();
+  const { annualTarget } = await request.json();
 
   const [row] = await db
     .update(schema.producer)
     .set({
       annualTarget: annualTarget ?? "0",
-      monthlyTarget: monthlyTarget ?? "0",
       updatedAt: new Date(),
     })
     .where(eq(schema.producer.id, Number(id)))

@@ -188,7 +188,6 @@ interface SalesmanTarget {
   code: string;
   name: string;
   annualTarget: number;
-  monthlyTarget: number;
   joinDate: string | null;
 }
 const salesmanTargets: SalesmanTarget[] = [];
@@ -201,7 +200,6 @@ salesmanTargetSheet.eachRow((row, idx) => {
     code,
     name,
     annualTarget: num(cv(row, 3)),
-    monthlyTarget: num(cv(row, 4)),
     joinDate: dateStr(cv(row, 5)),
   });
 });
@@ -252,7 +250,6 @@ const producerList: {
   region: string;
   title: string;
   annualTarget: number;
-  monthlyTarget: number;
   joinDate: string | null;
 }[] = [];
 
@@ -276,7 +273,6 @@ for (const name of allProducerNames) {
     region,
     title: info?.title ?? "",
     annualTarget: st?.annualTarget ?? info?.target ?? 0,
-    monthlyTarget: st?.monthlyTarget ?? 0,
     joinDate: st?.joinDate ?? null,
   });
 }
@@ -385,7 +381,6 @@ for (const p of producerList) {
       region: p.region,
       title: p.title || null,
       annualTarget: String(p.annualTarget),
-      monthlyTarget: String(p.monthlyTarget),
       joinDate: p.joinDate,
       userId,
     })

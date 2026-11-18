@@ -1,0 +1,1 @@
+ALTER TABLE "producer" DROP COLUMN "monthly_target";

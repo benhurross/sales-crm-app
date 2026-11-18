@@ -32,7 +32,6 @@ async function loadProducers(): Promise<ProducerRecord[]> {
     email: p.email,
     userId: p.userId,
     annualTarget: p.annualTarget,
-    monthlyTarget: p.monthlyTarget,
     records: records(p.id),
   }));
 }
@@ -54,7 +53,7 @@ await db.transaction(async (tx) => {
       .set({
         userId: keep.userId ?? donor.userId,
         email: keep.email ?? remove.find((p) => p.email)?.email ?? null,
-        ...(Number(keep.annualTarget) === 0 && target ? { annualTarget: target.annualTarget, monthlyTarget: target.monthlyTarget } : {}),
+        ...(Number(keep.annualTarget) === 0 && target ? { annualTarget: target.annualTarget } : {}),
       })
       .where(eq(schema.producer.id, keep.id));
     await tx.delete(schema.producer).where(inArray(schema.producer.id, ids));
