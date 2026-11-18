@@ -31,6 +31,7 @@ import {
   paceStatus,
   pipelineAging,
   producerLeaderboard,
+  teamTarget,
   STATUS_COLORS,
   statusBreakdown,
   TONE_COLORS,
@@ -55,7 +56,7 @@ function useMonthLabel() {
 
 interface DashboardData {
   leads: DashboardLead[];
-  producers: { id: number; name: string; annualTarget: string }[];
+  producers: { id: number; name: string; annualTarget: string; employmentStatus: string }[];
   prospects: { producerId: number; total: number; converted: number; premiums: number }[];
 }
 
@@ -101,9 +102,7 @@ export default function DashboardPage() {
 
   const annualTarget = useMemo(
     () =>
-      (data?.producers ?? [])
-        .filter((p) => !producerFilter || p.id === Number(producerFilter))
-        .reduce((sum, p) => sum + Number(p.annualTarget), 0),
+      teamTarget((data?.producers ?? []).filter((p) => !producerFilter || p.id === Number(producerFilter))),
     [data, producerFilter],
   );
   const targetAchievement = annualTarget > 0 ? kpis.securedPremium / annualTarget : 0;

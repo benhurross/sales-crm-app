@@ -6,8 +6,8 @@
  *   add --details to list every change before applying
  *
  * Leads come from the IMPORTRANGE sheet, where every salesman's own sheet is consolidated.
- * A lead is matched by salesman, client name and start date (or by salesman and client name when
- * only the date changed). Matched leads take the sheet's values, new ones are added, and leads
+ * Every row is a lead, matched by salesman, client name, start date, line of business and RFQ type
+ * (or by salesman and client name when the client appears once on each side). Matched leads take the sheet's values, new ones are added, and leads
  * that exist only in the app are kept and listed. Prospects from "Prospect Clients" that the app
  * does not have yet are added. Users, passwords and congratulations are never touched.
  */
@@ -54,8 +54,22 @@ function findInsurer(raw: string): number | null {
 // ── Leads from IMPORTRANGE ───────────────────────────────────────────
 type LeadValues = Omit<typeof schema.lead.$inferInsert, "id" | "createdAt" | "updatedAt" | "securedAt" | "celebratedAt" | "prospectClientId">;
 const sheetLeads = new Map<string, LeadValues>();
-let duplicateRows = 0;
+let sameLineRows = 0;
 let skippedRows = 0;
+
+// A client can have several opportunities on the same day (Medical, Motor, General, New or Renewal),
+// and occasionally two on the same line: every row is its own lead, numbered in order within its line.
+type LineFields = { producerId: number; prospectName: string; startWorkingDate: string; cob: string; rfqType: string };
+const lineKey = (l: LineFields) => `${l.producerId}|${nameKey(l.prospectName)}|${l.startWorkingDate}|${l.cob}|${l.rfqType}`;
+function numbered<T extends LineFields>(items: T[]): Map<string, T> {
+  const seen = new Map<string, number>();
+  return new Map(items.map((l) => {
+    const n = (seen.get(lineKey(l)) ?? 0) + 1;
+    seen.set(lineKey(l), n);
+    return [`${lineKey(l)}#${n}`, l];
+  }));
+}
+const sheetRows: LeadValues[] = [];
 
 sheet("IMPORTRANGE").eachRow((row, idx) => {
   if (idx === 1) return;
@@ -85,16 +99,16 @@ sheet("IMPORTRANGE").eachRow((row, idx) => {
     quoteTimestamp: isoDate(cell(row, 14)),
     comments: text(cell(row, 15)) || null,
   };
-  const key = `${pid}|${nameKey(prospectName)}|${startWorkingDate}`;
-  // a lead listed twice keeps its first row, as the original import did
-  if (sheetLeads.has(key)) return void duplicateRows++;
-  sheetLeads.set(key, lead);
+  sheetRows.push(lead);
 });
+for (const [key, lead] of numbered(sheetRows as (LineFields & LeadValues)[])) {
+  if (!key.endsWith("#1")) sameLineRows++;
+  sheetLeads.set(key, lead);
+}
 
-const dbLeads = await db.select().from(schema.lead);
-const exactKey = (l: { producerId: number; prospectName: string; startWorkingDate: string }) => `${l.producerId}|${nameKey(l.prospectName)}|${l.startWorkingDate}`;
+const dbLeads = (await db.select().from(schema.lead)).sort((a, b) => a.id - b.id);
 const looseKey = (l: { producerId: number; prospectName: string }) => `${l.producerId}|${nameKey(l.prospectName)}`;
-const dbByExact = new Map(dbLeads.map((l) => [exactKey(l), l]));
+const dbByExact = numbered(dbLeads);
 const countBy = <T>(items: T[], key: (t: T) => string) => items.reduce((m, t) => m.set(key(t), (m.get(key(t)) ?? 0) + 1), new Map<string, number>());
 const dbLooseCount = countBy(dbLeads, looseKey);
 const sheetLooseCount = countBy([...sheetLeads.values()], (l) => looseKey(l as { producerId: number; prospectName: string }));
@@ -110,10 +124,10 @@ const toUpdate: { id: number; changes: Partial<LeadValues> }[] = [];
 const fieldChanges = new Map<string, number>();
 const matchedIds = new Set<number>();
 
-for (const lead of sheetLeads.values()) {
+for (const [key, lead] of sheetLeads) {
   const l = lead as Required<LeadValues>;
-  let existing = dbByExact.get(exactKey(l));
-  // Same client for the same salesman, only once on each side: the start date was corrected.
+  let existing = dbByExact.get(key);
+  // Same client for the same salesman, only once on each side: the date or line was corrected.
   if (!existing && dbLooseCount.get(looseKey(l)) === 1 && sheetLooseCount.get(looseKey(l)) === 1)
     existing = dbLeads.find((d) => looseKey(d) === looseKey(l) && !matchedIds.has(d.id));
   if (!existing || matchedIds.has(existing.id)) {
@@ -168,7 +182,7 @@ const perProducer = (items: { producerId: number }[]) =>
   [...countBy(items, (i) => nameOf(i.producerId))].sort((a, b) => b[1] - a[1]).map(([n, c]) => `${n} ${c}`).join(", ") || "none";
 
 console.log(`Sheet: ${file}`);
-console.log(`\nLeads (IMPORTRANGE: ${sheetLeads.size} unique rows${duplicateRows ? `, ${duplicateRows} repeated rows ignored` : ""}${skippedRows ? `, ${skippedRows} without a date or known salesman skipped` : ""})`);
+console.log(`\nLeads (IMPORTRANGE: ${sheetLeads.size} rows${sameLineRows ? `, ${sameLineRows} of them a second opportunity on the same client, date and line` : ""}${skippedRows ? `, ${skippedRows} without a date or known salesman skipped` : ""})`);
 console.log(`  New:        ${toInsert.length}  (${perProducer(toInsert as { producerId: number }[])})`);
 console.log(`  Updated:    ${toUpdate.length}  (${[...fieldChanges].map(([f, n]) => `${f} ${n}`).join(", ") || "no changes"})`);
 console.log(`  Unchanged:  ${matchedIds.size - toUpdate.length}`);

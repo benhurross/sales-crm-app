@@ -33,8 +33,8 @@ const data: DashboardData = {
     lead({ id: 3, producerId: 2, producerName: "Bob <B>", producerCode: "R-202", cob: "Motor" }),
   ],
   producers: [
-    { id: 1, code: "J-101", name: "Alice", annualTarget: "100000" },
-    { id: 2, code: "R-202", name: "Bob <B>", annualTarget: "200000" },
+    { id: 1, code: "J-101", name: "Alice", annualTarget: "100000", employmentStatus: "Active" },
+    { id: 2, code: "R-202", name: "Bob <B>", annualTarget: "200000", employmentStatus: "Active" },
   ],
   prospects: [
     { producerId: 1, total: 10, converted: 2, premiums: 90000 },

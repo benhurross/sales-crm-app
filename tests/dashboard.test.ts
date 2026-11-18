@@ -5,6 +5,7 @@ import {
   monthOf,
   paceStatus,
   producerLeaderboard,
+  teamTarget,
   yearElapsed,
   pipelineAging,
   statusBreakdown,
@@ -190,5 +191,30 @@ describe("paceStatus and yearElapsed", () => {
     expect(paceStatus(0.6, 0.5)).toEqual({ label: "On pace", tone: "good" });
     expect(paceStatus(0.3, 0.5).tone).toBe("warning");
     expect(paceStatus(0.1, 0.5).tone).toBe("critical");
+  });
+});
+
+describe("teamTarget", () => {
+  it("counts only active salesmen's targets", () => {
+    expect(
+      teamTarget([
+        { annualTarget: "10000000", employmentStatus: "Active" },
+        { annualTarget: "5000000", employmentStatus: "Resigned" },
+        { annualTarget: "9000000", employmentStatus: "Transferred" },
+        { annualTarget: "2000000" },
+      ]),
+    ).toBe(12_000_000);
+  });
+
+  it("leaves former salesmen with no leads out of the leaderboard", () => {
+    const rows = producerLeaderboard(
+      [lead({ producerId: 2, status: "Secured", estimatedPremium: "100" })],
+      [
+        { id: 1, name: "Active", annualTarget: "1000", employmentStatus: "Active" },
+        { id: 2, name: "Gone with leads", annualTarget: "1000", employmentStatus: "Resigned" },
+        { id: 3, name: "Gone", annualTarget: "1000", employmentStatus: "Resigned" },
+      ],
+    );
+    expect(rows.map((r) => r.name)).toEqual(["Gone with leads", "Active"]);
   });
 });

@@ -140,10 +140,19 @@ export interface LeaderboardRow {
   achievement: number;
 }
 
-/** Producers with leads or a target, ranked by secured premium. */
+type ProducerTarget = { annualTarget: string; employmentStatus?: string };
+
+const isActive = (p: { employmentStatus?: string }) => (p.employmentStatus ?? "Active") === "Active";
+
+/** The team's annual target: active salesmen only, as the mastersheet's Targets tab counts it. */
+export function teamTarget(producers: ProducerTarget[]): number {
+  return producers.filter(isActive).reduce((sum, p) => sum + Number(p.annualTarget), 0);
+}
+
+/** Salesmen with leads, plus active salesmen with a target, ranked by secured premium. */
 export function producerLeaderboard(
   leads: DashboardLead[],
-  producers: { id: number; name: string; annualTarget: string }[],
+  producers: ({ id: number; name: string } & ProducerTarget)[],
 ): LeaderboardRow[] {
   const byProducer = new Map<number, DashboardLead[]>();
   for (const l of leads) byProducer.set(l.producerId, [...(byProducer.get(l.producerId) ?? []), l]);
@@ -163,7 +172,7 @@ export function producerLeaderboard(
         achievement: target > 0 ? k.securedPremium / target : 0,
       };
     })
-    .filter((p) => p.leads > 0 || p.target > 0)
+    .filter((p, i) => p.leads > 0 || (p.target > 0 && isActive(producers[i])))
     .sort((a, b) => b.secured - a.secured || b.leads - a.leads);
 }
 

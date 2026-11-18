@@ -5,6 +5,7 @@ import {
   paceStatus,
   pipelineAging,
   producerLeaderboard,
+  teamTarget,
   STATUS_COLORS,
   statusBreakdown,
   TONE_COLORS,
@@ -201,7 +202,7 @@ export async function buildDashboardHtml(data: DashboardData, filters: Dashboard
     .reduce((t, p) => ({ total: t.total + p.total, converted: t.converted + p.converted, premiums: t.premiums + p.premiums }), { total: 0, converted: 0, premiums: 0 });
 
   const k = computeKpis(leads);
-  const target = producers.reduce((s, p) => s + Number(p.annualTarget), 0);
+  const target = teamTarget(producers);
   const achievement = target > 0 ? k.securedPremium / target : 0;
   const pace = yearElapsed(today);
   const status = paceStatus(achievement, pace);

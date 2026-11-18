@@ -5,7 +5,7 @@ import type { DashboardLead } from "@/lib/dashboard";
 
 export interface DashboardData {
   leads: DashboardLead[];
-  producers: { id: number; code: string; name: string; annualTarget: string }[];
+  producers: { id: number; code: string; name: string; annualTarget: string; employmentStatus: string }[];
   prospects: { producerId: number; total: number; converted: number; premiums: number }[];
 }
 
@@ -49,6 +49,7 @@ export async function loadDashboardData(user: { id: string; role?: string | null
       code: schema.producer.code,
       name: schema.producer.name,
       annualTarget: schema.producer.annualTarget,
+      employmentStatus: schema.producer.employmentStatus,
     })
     .from(schema.producer)
     .orderBy(schema.producer.name);
